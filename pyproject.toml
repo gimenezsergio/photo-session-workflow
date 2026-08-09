@@ -1,0 +1,6 @@
+[project]
+name = "photo-session-workflow"
+version = "0.0.0"
+description = "Local, non-destructive photography workflow foundations"
+requires-python = ">=3.11"
+dependencies = []

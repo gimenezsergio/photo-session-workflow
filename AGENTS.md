@@ -6,11 +6,16 @@ Estas instrucciones aplican a todo el proyecto.
 
 ## Estado actual
 
-El proyecto está en diseño documental de la Fase 0. Hasta que el usuario apruebe explícitamente el inicio de la implementación:
+La implementación está autorizada exclusivamente para P0-01 y P0-02:
 
-- no inicializar Flask;
-- no instalar dependencias;
-- no crear código funcional ni esquemas de base de datos ejecutables;
+- contrato de sesión, configuración y fronteras de rutas;
+- fixtures sintéticos generados durante las pruebas.
+
+Hasta una nueva autorización:
+
+- no avanzar a P0-03 ni implementar descubrimiento de fotografías;
+- no inicializar Flask ni SQLite;
+- no instalar dependencias sin justificación previa;
 - no procesar fotografías reales;
 - no abrir, copiar ni modificar catálogos Lightroom.
 
@@ -34,7 +39,7 @@ Quedan fuera de la Fase 0 la preproducción, las propuestas creativas, las prese
 - En la Fase 0, nunca modificar, crear, aplicar ni restaurar XMP/ACR junto a las fuentes.
 - Guardar miniaturas, proxies, hojas de contacto e índices de la Fase 0 únicamente en el workspace privado configurado fuera de las fuentes y del repositorio.
 - No incluir fotografías reales, catálogos, credenciales, datos personales ni archivos privados de modelos en Git, fixtures o logs.
-- Usar datos sintéticos en pruebas futuras.
+- Usar datos sintéticos generados en directorios temporales durante las pruebas.
 
 ## Límites de arquitectura
 

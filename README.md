@@ -4,7 +4,7 @@ Proyecto local para diseñar y, más adelante, implementar un flujo de producci�
 
 ## Estado
 
-El repositorio contiene únicamente documentación. La Fase 0 está definida y pendiente de implementación; todavía no hay una aplicación Flask, dependencias instaladas, esquema SQLite ni código funcional.
+P0-01 y P0-02 de la Fase 0 están implementados: configuración local, fronteras de rutas, capacidades separadas de lectura/escritura y fixtures sintéticos temporales. Todavía no hay aplicación Flask, SQLite, dependencias externas, descubrimiento de fotografías ni procesamiento de material real.
 
 ## Objetivo
 
@@ -37,22 +37,51 @@ La Fase 0 es estrictamente de lectura respecto del material fotográfico y de Li
 - [`docs/privacy.md`](docs/privacy.md): límites y tratamiento de datos privados.
 - [`docs/lightroom-integration.md`](docs/lightroom-integration.md): estrategia XMP/ACR y límites con Lightroom.
 - [`docs/phase-0-postproduction.md`](docs/phase-0-postproduction.md): alcance cerrado, tareas y criterios de aceptación de la Fase 0.
-- [`config.example.yaml`](config.example.yaml): configuración ilustrativa sin datos reales.
+- [`config.example.json`](config.example.json): configuración de rutas ilustrativa sin datos reales.
+
+## Configuración local de P0-01
+
+Copiar `config.example.json` como `config.local.json` y reemplazar los tres valores por rutas absolutas existentes:
+
+- `session_root`: carpeta externa de sesión, accesible sólo mediante `SessionReader`;
+- `workspace_root`: workspace privado con capacidad de lectura/escritura;
+- `repository_root`: raíz protegida de este repositorio.
+
+`config.local.json` está ignorado por Git. Las tres raíces deben ser disjuntas: la validación rechaza igualdad, anidamiento en cualquier dirección y symlinks, junctions o reparse points detectables.
+
+## Pruebas de P0-01 y P0-02
+
+No se requieren dependencias externas. En Windows, con Python 3.11 o posterior:
+
+```powershell
+py -3 -m unittest discover -s tests -v
+```
+
+Si `python` ya está disponible en `PATH`:
+
+```powershell
+python -m unittest discover -s tests -v
+```
+
+Los tests generan en directorios temporales archivos de texto con extensiones `.NEF`, `.jpg`, `.xmp` y `.acr`. No son fotografías ni validan decodificación RAW/JPEG; sólo representan nombres, relaciones y variantes de metadatos para P0-02.
 
 ## Estructura inicial
 
 ```text
 photo-session-workflow/
-├── app/                 # Reservado para una implementación futura
+├── app/                 # Reservado para Flask; permanece vacío
 ├── docs/
+├── photo_session_workflow/
+│   ├── config.py        # Carga y validación de configuración local
+│   └── paths.py         # Fronteras y capacidades de filesystem
 ├── templates/           # Reservado para plantillas HTML futuras
-├── tests/               # Reservado para pruebas futuras
+├── tests/               # unittest y generador de fixtures temporales
 ├── .gitignore
 ├── AGENTS.md
 ├── README.md
-└── config.example.yaml
+└── config.example.json
 ```
 
 ## Próxima revisión
 
-Antes de implementar se debe aprobar el plan de `docs/phase-0-postproduction.md`. Las preguntas restantes están documentadas como decisiones futuras y no bloquean la Fase 0.
+La implementación debe detenerse al completar P0-01 y P0-02. P0-03 y las tareas posteriores requieren una autorización nueva. Las preguntas restantes están documentadas como decisiones futuras y no bloquean estas bases.
