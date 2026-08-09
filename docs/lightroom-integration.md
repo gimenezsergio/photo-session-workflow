@@ -4,6 +4,8 @@
 
 El MVP se integrará mediante archivos XMP y convenciones compatibles con Adobe Camera Raw. El catálogo `.lrcat` se considera una fuente fuera de límites: podrá registrarse su ubicación como referencia, pero no se abrirá para escritura ni se modificará directamente.
 
+En la Fase 0, Lightroom Classic es el editor principal y la integración es estrictamente de lectura. La aplicación no abrirá el catálogo `.lrcat`, no modificará XMP/ACR, no aplicará ni restaurará versiones y no escribirá ajustes sugeridos.
+
 ## Modelo de interacción
 
 ### Lectura
@@ -13,6 +15,19 @@ El MVP se integrará mediante archivos XMP y convenciones compatibles con Adobe 
 - Recuperar la puntuación por estrellas cuando esté presente.
 - Inventariar ajustes de revelado y presencia de estructuras de máscaras.
 - Conservar campos desconocidos sin interpretarlos ni descartarlos.
+- Usar las estrellas del XMP como única fuente accesible; representan el último estado que el usuario guardó desde Lightroom en el sidecar mediante `Ctrl+S`.
+- Advertir que no puede comprobarse automáticamente una discrepancia con el catálogo porque la Fase 0 no abre `.lrcat`.
+- Inventariar archivos ACR auxiliares encontrados y relacionarlos por nombre base, sin asumir todavía su semántica.
+
+### Previews de la Fase 0
+
+- Preferir un JPG exportado desde Lightroom cuando se necesite representar la edición visible.
+- Aceptar una previsualización extraída o revelada desde NEF como aproximación.
+- Registrar y mostrar la procedencia de cada preview.
+- No afirmar equivalencia visual entre ambos tipos.
+- Generar el proxy derivado como JPG sRGB, con lado largo configurable —2048 px inicial— y calidad aproximada de 85.
+
+## Capacidades futuras fuera de la Fase 0
 
 ### Propuesta
 
@@ -32,6 +47,8 @@ La escritura junto al RAW estará deshabilitada por defecto. Si se incorpora al 
 - usar una escritura temporal y reemplazo atómico;
 - permitir restauración y registrar cada resultado;
 - abstenerse de escribir si el archivo cambió o la compatibilidad es incierta.
+
+Estas capacidades no forman parte de la Fase 0 y no deben estar disponibles mediante interfaz, servicio o adaptador activo.
 
 ## Versionado de sidecars
 
@@ -70,11 +87,19 @@ La estrategia inicial es de preservación:
 
 ## Flujo manual con Lightroom
 
-1. Lightroom o el usuario genera/sincroniza sidecars XMP cuando corresponde.
-2. El workflow lee una instantánea de esos archivos.
-3. El usuario revisa propuestas fuera de la carpeta RAW.
-4. Tras una aplicación explícita, el usuario indica a Lightroom que lea los metadatos desde archivo.
-5. Si Lightroom produjo cambios nuevos, el workflow debe volver a analizar y crear una versión nueva, no sobrescribir el historial.
+### Fase 0
+
+1. El usuario selecciona y edita parcialmente en Lightroom Classic.
+2. Guarda metadatos con `Ctrl+S`.
+3. El workflow lee XMP, EXIF y archivos relacionados sin escribir.
+4. El usuario revisa proxies, confirma una selección reducida y evalúa sugerencias.
+5. Cualquier edición posterior se realiza manualmente en Lightroom.
+
+### Futuro
+
+1. El usuario revisa propuestas XMP fuera de la carpeta RAW.
+2. Tras una aplicación explícita, solicita a Lightroom que lea los metadatos desde archivo.
+3. Si Lightroom produjo cambios nuevos, el workflow vuelve a analizar y crea una versión nueva sin sobrescribir el historial.
 
 La dirección de sincronización debe mostrarse claramente para evitar que “guardar metadatos” y “leer metadatos” se confundan.
 
@@ -96,3 +121,5 @@ Ante un conflicto, el comportamiento por defecto será detener la escritura, con
 - Convención exacta de nombres y manifiestos del archivo de versiones.
 - Si la aplicación de sidecars forma parte del MVP o queda como operación manual.
 - Matriz de pruebas por formato RAW y versión de proceso.
+- Semántica y formatos reales de los archivos ACR auxiliares que aparezcan en las sesiones.
+- Método para representar recomendaciones de máscaras sin escribirlas.
