@@ -92,8 +92,9 @@ La estrategia inicial es de preservación:
 1. El usuario selecciona y edita parcialmente en Lightroom Classic.
 2. Guarda metadatos con `Ctrl+S`.
 3. El workflow lee XMP, EXIF y archivos relacionados sin escribir.
-4. El usuario revisa proxies, confirma una selección reducida y evalúa sugerencias.
-5. Cualquier edición posterior se realiza manualmente en Lightroom.
+4. El usuario revisa proxies, confirma una selección reducida y genera un paquete local para revisión asistida.
+5. Si lo desea, carga manualmente ese paquete en ChatGPT; la aplicación no controla Lightroom ni ChatGPT.
+6. El usuario registra manualmente las recomendaciones y realiza cualquier edición posterior en Lightroom.
 
 ### Futuro
 
@@ -123,3 +124,4 @@ Ante un conflicto, el comportamiento por defecto será detener la escritura, con
 - Matriz de pruebas por formato RAW y versión de proceso.
 - Semántica y formatos reales de los archivos ACR auxiliares que aparezcan en las sesiones.
 - Método para representar recomendaciones de máscaras sin escribirlas.
+- Posible importación estructurada futura de recomendaciones producidas fuera de la aplicación.

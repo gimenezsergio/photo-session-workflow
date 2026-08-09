@@ -34,11 +34,19 @@ La visión completa incluye preproducción, propuesta creativa y posproducción.
 - Identificar claramente la procedencia del preview y no presentar ambas fuentes como visualmente equivalentes.
 - Generar una hoja de contacto para la revisión general.
 - Permitir al usuario confirmar una selección reducida, con objetivo aproximado de 12 a 30 fotografías.
-- Ejecutar el análisis visual detallado únicamente sobre esa selección confirmada.
+- Preparar únicamente la selección confirmada para análisis visual asistido mediante un paquete local de revisión.
 
-### Sugerencias
+### Paquete de revisión y handoff manual
 
-La herramienta podrá sugerir problemas de exposición, dominantes de color, coherencia de la serie, fotografías similares, posibles seleccionadas, ajustes globales y máscaras. Ninguna sugerencia se aplicará automáticamente y todo resultado creativo o técnico requerirá confirmación del usuario.
+- Generar un paquete local con hoja de contacto, proxies correspondientes únicamente a la selección confirmada y un manifiesto JSON.
+- Excluir del manifiesto rutas absolutas, GPS y datos personales.
+- Incluir procedencia de cada preview, rating leído desde XMP, datos técnicos mínimos e identificador o nombre de archivo para volver a Lightroom.
+- Permitir revisar y descargar el paquete para una carga manual y explícita decidida por el usuario.
+- No enviar automáticamente fotografías, proxies, XMP ni metadatos a ChatGPT ni a ningún servicio externo.
+- No controlar ChatGPT, utilizar su API ni almacenar credenciales.
+- Distinguir preparación local, carga manual, análisis conversacional externo y registro manual de recomendaciones.
+
+Las sugerencias de exposición, color, coherencia, similitud, posibles seleccionadas, ajustes globales y máscaras se producirán durante la revisión asistida externa. La aplicación no las calculará internamente en la Fase 0 y nunca las aplicará automáticamente.
 
 ### Restricciones obligatorias
 
@@ -47,6 +55,7 @@ La herramienta podrá sugerir problemas de exposición, dominantes de color, coh
 - No crear ni restaurar versiones XMP/ACR.
 - No eliminar archivos.
 - Mantener Lightroom Classic como herramienta principal de edición.
+- Limitar toda salida compartible a una acción manual y explícita del usuario.
 
 ## Requisitos funcionales futuros, fuera de la Fase 0
 
@@ -97,7 +106,7 @@ Estos requisitos describen la dirección futura y no autorizan escritura XMP dur
 - Registro de errores sin exponer datos personales ni rutas completas por defecto.
 - Recuperación: ninguna operación debe dejar como única copia una versión transformada.
 - Rendimiento inicial orientado a sesiones individuales; la escala exacta queda por validar.
-- Capacidad objetivo de la Fase 0: hasta 200 fotografías, con análisis general mediante proxies y análisis detallado de 12 a 30 fotografías confirmadas.
+- Capacidad objetivo de la Fase 0: hasta 200 fotografías, con revisión general mediante proxies y paquete de análisis asistido limitado a 12 a 30 fotografías confirmadas.
 
 ## Fuera del alcance del MVP
 
@@ -137,7 +146,7 @@ Estos requisitos describen la dirección futura y no autorizan escritura XMP dur
 9. Política de copias de seguridad, retención y eliminación del workspace.
 10. Qué información personal de modelos, si alguna, puede almacenarse en SQLite.
 11. Reglas exactas para elegir entre un JPG exportado por Lightroom y un preview aproximado de NEF.
-12. Método de análisis visual, dependencias locales y métricas de calidad para cada tipo de sugerencia.
+12. Posible análisis visual local, integración mediante API e importación estructurada de resultados.
 13. Umbrales y presentación de advertencias de exposición, color, similitud y coherencia.
 14. Política de retención y limpieza manual de proxies y hojas de contacto.
 

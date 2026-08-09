@@ -35,7 +35,9 @@ Reducir la exposición de fotografías y datos personales mediante almacenamient
 - No copiar automáticamente archivos privados al workspace.
 - No incluir datos sensibles en nombres de archivo, URLs locales, logs o hojas de contacto.
 - Usar fixtures sintéticos en documentación y pruebas.
-- No transmitir fotos, EXIF, XMP ni datos personales a servicios externos.
+- No transmitir automáticamente fotografías, proxies, EXIF, XMP ni datos personales a ChatGPT o cualquier servicio externo.
+- No usar la API de ChatGPT, controlar su interfaz ni almacenar credenciales en la Fase 0.
+- Exigir una decisión y acción explícitas del usuario antes de compartir manualmente un paquete de revisión.
 - Escuchar únicamente en `127.0.0.1` por defecto.
 - Guardar proxies y hojas de contacto sólo en el workspace privado, nunca en GitHub ni dentro de la sesión fuente.
 - Generar proxies sin GPS, rutas absolutas, datos de contacto u otros metadatos sensibles innecesarios.
@@ -48,6 +50,7 @@ Reducir la exposición de fotografías y datos personales mediante almacenamient
 - Los paths pueden contener nombres de personas o proyectos privados.
 - Las miniaturas y hojas de contacto siguen siendo datos fotográficos sensibles.
 - Los proxies de 2048 px pueden ser suficientemente detallados para identificar personas o revelar material no publicado.
+- El paquete de revisión sigue conteniendo imágenes identificables aunque sus metadatos hayan sido minimizados.
 - Las copias de seguridad y sincronización automática del sistema operativo pueden replicar el workspace.
 - Una propuesta compartible puede filtrar notas internas si ambas vistas reutilizan el mismo campo.
 
@@ -60,6 +63,8 @@ Reducir la exposición de fotografías y datos personales mediante almacenamient
 - Documentar ubicación, retención y respaldo del workspace.
 - Incorporar una revisión previa a toda exportación compartible.
 - Registrar la procedencia del preview sin exponer la ruta absoluta de la fuente en la interfaz o exportaciones.
+- Minimizar el manifiesto y los proxies antes de generar el paquete: excluir rutas absolutas, GPS, datos personales y metadatos no necesarios.
+- Mostrar una advertencia de privacidad antes de descargar el paquete para compartirlo manualmente.
 
 ## Retención y eliminación
 
@@ -80,5 +85,6 @@ La política concreta está pendiente. Como base:
 - Tratamiento de GPS, menores de edad y material especialmente sensible.
 - Alcance de autenticación local si el equipo tiene múltiples usuarios.
 - Política futura de limpieza explícita y verificable de proxies y hojas de contacto.
+- Condiciones para una posible integración futura mediante API, sujetas a consentimiento, credenciales y controles separados.
 
 Este documento orienta el diseño técnico y no reemplaza asesoramiento legal ni los consentimientos aplicables.

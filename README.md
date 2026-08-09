@@ -14,7 +14,7 @@ La visión futura es centralizar tres partes del trabajo fotográfico:
 - propuesta interna y presentación para la modelo;
 - posproducción asistida e integrada con Lightroom Classic.
 
-El objetivo inmediato está recortado a la **Fase 0 de posproducción**: trabajar localmente con fotografías ya seleccionadas y editadas parcialmente en Lightroom Classic, leer desde XMP las estrellas correspondientes al último estado guardado con `Ctrl+S`, generar proxies y hojas de contacto, confirmar una selección reducida y analizar visualmente sólo esa selección. Lightroom Classic seguirá siendo el editor principal.
+El objetivo inmediato está recortado a la **Fase 0 de posproducción**: trabajar localmente con fotografías ya seleccionadas y editadas parcialmente en Lightroom Classic, leer desde XMP las estrellas correspondientes al último estado guardado con `Ctrl+S`, generar proxies y hojas de contacto, confirmar una selección reducida y preparar únicamente esa selección para análisis visual asistido. Lightroom Classic seguirá siendo el editor principal.
 
 La Fase 0 es estrictamente de lectura respecto del material fotográfico y de Lightroom. No modifica XMP, RAW, JPG, TIFF ni DNG; no abre ni escribe catálogos `.lrcat`; no restaura versiones y no elimina archivos.
 
@@ -24,6 +24,8 @@ La Fase 0 es estrictamente de lectura respecto del material fotográfico y de Li
 - Los sidecars XMP y archivos ACR auxiliares son de solo lectura en la Fase 0.
 - El código y su base local no contienen catálogos, fotos reales ni archivos privados de modelos.
 - Los proxies y hojas de contacto se guardan en un workspace privado fuera del repositorio.
+- La aplicación genera un paquete local de revisión; sólo el usuario decide si lo carga manualmente en ChatGPT u otro servicio.
+- La aplicación no controla ChatGPT, no utiliza su API, no almacena credenciales y no transmite archivos automáticamente.
 - Toda sugerencia creativa o técnica requiere confirmación del usuario y nunca se aplica automáticamente.
 - La aplicación será local y orientada a Windows.
 

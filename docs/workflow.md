@@ -31,15 +31,23 @@
 1. El usuario revisa proxies y hoja de contacto.
 2. La aplicación puede sugerir similares o posibles seleccionadas, sin modificar la selección.
 3. El usuario confirma explícitamente aproximadamente 12 a 30 fotografías.
-4. Sólo las fotografías confirmadas pasan al análisis visual detallado.
+4. Sólo las fotografías confirmadas pasan al paquete de revisión para análisis visual asistido.
 
-### 5. Analizar y confirmar resultados
+### 5. Preparar el handoff manual
 
-1. Analizar exposición, dominantes de color, coherencia de serie y similitud.
-2. Presentar posibles seleccionadas, ajustes globales y máscaras recomendadas como sugerencias.
-3. Identificar limitaciones derivadas del tipo de preview.
-4. Permitir que el usuario confirme, rechace o deje pendiente cada resultado.
-5. No escribir sugerencias en Lightroom, XMP ni archivos fotográficos.
+1. Generar localmente un paquete con hoja de contacto, proxies de la selección confirmada y manifiesto JSON minimizado.
+2. Incluir procedencia del preview, rating XMP, datos técnicos mínimos e identificador para volver a Lightroom.
+3. Permitir que el usuario revise y descargue el paquete.
+4. Informar que compartirlo con ChatGPT requiere una carga manual y explícita del usuario.
+5. No transmitir archivos, controlar ChatGPT, utilizar su API ni almacenar credenciales.
+
+### 6. Revisar externamente y registrar
+
+1. El usuario decide si carga manualmente el paquete en ChatGPT.
+2. La revisión conversacional externa puede producir observaciones de exposición, color, coherencia, similitud y selección, además de recomendaciones de ajustes globales y máscaras.
+3. La aplicación no calcula esas sugerencias en la Fase 0.
+4. El usuario registra manualmente recomendaciones confirmadas, rechazadas o pendientes.
+5. La aplicación no escribe recomendaciones en Lightroom, XMP ni archivos fotográficos.
 
 ## Flujo futuro fuera de la Fase 0
 

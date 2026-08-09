@@ -2,9 +2,9 @@
 
 ## Objetivo
 
-Construir una herramienta local para revisar fotografías que ya fueron seleccionadas y editadas parcialmente en Lightroom Classic. La herramienta reducirá una sesión de hasta 200 fotografías mediante estrellas, proxies y una hoja de contacto; el usuario confirmará una selección de aproximadamente 12 a 30 fotografías antes del análisis visual detallado.
+Construir una herramienta local para revisar fotografías que ya fueron seleccionadas y editadas parcialmente en Lightroom Classic. La herramienta reducirá una sesión de hasta 200 fotografías mediante estrellas, proxies y una hoja de contacto; el usuario confirmará una selección de aproximadamente 12 a 30 fotografías y la aplicación preparará únicamente esa selección para análisis visual asistido.
 
-Lightroom Classic seguirá siendo el editor principal. La aplicación sólo presentará información y sugerencias; las decisiones creativas y técnicas finales serán siempre del usuario.
+Lightroom Classic seguirá siendo el editor principal. La aplicación preparará un paquete local que el usuario podrá cargar manualmente en ChatGPT para una revisión conversacional externa. La aplicación no controlará ChatGPT, no usará su API, no almacenará credenciales y no transmitirá archivos automáticamente. Las decisiones creativas y técnicas finales serán siempre del usuario.
 
 ## Alcance cerrado
 
@@ -46,8 +46,22 @@ Cada proxy debe conservar su procedencia. La interfaz y los informes no deben pr
 - Filtro por estrellas.
 - Hoja de contacto.
 - Selección reducida confirmada por el usuario.
-- Sugerencias sobre exposición, dominantes de color, coherencia de la serie, similitud, posibles seleccionadas, ajustes globales y máscaras.
-- Confirmación, rechazo o estado pendiente para cada sugerencia.
+- Paquete de revisión local con hoja de contacto, proxies seleccionados y manifiesto JSON minimizado.
+- Descarga manual del paquete iniciada por el usuario.
+- Registro manual de recomendaciones obtenidas durante una revisión asistida externa.
+- Confirmación, rechazo o estado pendiente para cada recomendación registrada.
+
+### Contenido del paquete de revisión
+
+- Hoja de contacto.
+- Proxies correspondientes únicamente a la selección confirmada.
+- Manifiesto JSON sin rutas absolutas, GPS ni datos personales.
+- Procedencia de cada preview.
+- Rating leído desde XMP.
+- Datos técnicos mínimos necesarios para el análisis.
+- Identificador o nombre de archivo que permita volver al activo en Lightroom.
+
+El paquete se genera y conserva localmente. El usuario decide si lo descarga y carga manualmente en ChatGPT. La aplicación no conoce ni registra si esa carga externa ocurrió.
 
 ## Prohibiciones de la Fase 0
 
@@ -58,7 +72,10 @@ Cada proxy debe conservar su procedencia. La interfaz y los informes no deben pr
 - No eliminar archivos fuente ni derivados.
 - No mover ni renombrar archivos de la sesión.
 - No aplicar automáticamente sugerencias.
-- No analizar visualmente en detalle fotografías que el usuario no haya confirmado.
+- No transmitir automáticamente fotografías, proxies, XMP ni metadatos a servicios externos.
+- No controlar ChatGPT, utilizar su API ni almacenar credenciales.
+- No incluir en el paquete fotografías que el usuario no haya confirmado.
+- No calcular internamente sugerencias visuales en la Fase 0.
 
 ## Flujo funcional
 
@@ -73,10 +90,11 @@ Cada proxy debe conservar su procedencia. La interfaz y los informes no deben pr
 9. La aplicación elige o permite elegir la fuente de preview y deja registrada su procedencia.
 10. Genera proxies y una hoja de contacto en el workspace privado.
 11. El usuario confirma una selección reducida de aproximadamente 12 a 30 fotografías.
-12. La aplicación analiza visualmente sólo la selección confirmada.
-13. Presenta sugerencias con sus limitaciones y nivel de confianza cuando corresponda.
-14. El usuario confirma, rechaza o deja pendiente cada resultado.
-15. Toda edición posterior se realiza manualmente en Lightroom Classic.
+12. La aplicación genera localmente un paquete de revisión limitado a la selección confirmada.
+13. El usuario revisa y descarga manualmente el paquete si decide compartirlo.
+14. El usuario realiza, de manera independiente, una revisión conversacional externa en ChatGPT.
+15. El usuario registra manualmente las recomendaciones y las marca como confirmadas, rechazadas o pendientes.
+16. Toda edición posterior se realiza manualmente en Lightroom Classic.
 
 ## Tareas pequeñas y criterios de aceptación
 
@@ -195,36 +213,39 @@ Registrar una decisión explícita del usuario antes del análisis detallado.
 - No se inicia análisis detallado sin confirmación explícita.
 - La confirmación no escribe estrellas ni selecciones en Lightroom/XMP.
 
-### P0-12. Analizar la selección confirmada
+### P0-12. Generar el paquete de revisión
 
-Evaluar únicamente los proxies confirmados.
-
-**Criterios de aceptación**
-
-- Ninguna fotografía fuera de la selección confirmada recibe análisis detallado.
-- Los resultados separan observaciones de exposición, color, coherencia, similitud y selección sugerida.
-- Cada resultado identifica la fuente y las limitaciones del preview.
-- Un error en una fotografía no invalida el resto del análisis.
-
-### P0-13. Presentar recomendaciones de edición
-
-Describir posibles ajustes globales y máscaras sin generarlos ni aplicarlos.
+Preparar localmente el material mínimo necesario para revisión asistida.
 
 **Criterios de aceptación**
 
-- Las recomendaciones se muestran como texto o datos internos no ejecutables.
-- No se crea ni modifica XMP/ACR.
-- No se afirma que una máscara recomendada sea equivalente a una máscara de Lightroom.
+- El paquete contiene hoja de contacto y proxies únicamente de la selección confirmada.
+- Incluye un manifiesto JSON válido sin rutas absolutas, GPS ni datos personales.
+- Cada entrada registra procedencia del preview, rating XMP, datos técnicos mínimos e identificador para volver a Lightroom.
+- La generación no transmite archivos ni requiere credenciales externas.
+- Un error en una fotografía se informa sin incorporar silenciosamente un paquete incompleto.
 
-### P0-14. Confirmar resultados
+### P0-13. Permitir revisar y descargar el paquete
 
-Mantener al usuario como responsable de cada decisión final.
+Ofrecer al usuario control explícito sobre el handoff manual.
 
 **Criterios de aceptación**
 
-- Cada sugerencia puede quedar confirmada, rechazada o pendiente.
-- No existe una acción que aplique resultados automáticamente.
-- El estado confirmado se almacena sólo en la base local del workflow.
+- Antes de descargar, el usuario puede revisar conteo, archivos incluidos, procedencia y metadatos del manifiesto.
+- La interfaz advierte que los proxies contienen imágenes identificables y que compartirlos es decisión del usuario.
+- La descarga requiere una acción explícita y no inicia una carga externa.
+- La aplicación no controla ChatGPT, no usa su API y no almacena credenciales.
+
+### P0-14. Registrar manualmente recomendaciones y estado
+
+Permitir registrar resultados obtenidos durante la revisión asistida sin importación automática ni aplicación.
+
+**Criterios de aceptación**
+
+- El usuario puede registrar manualmente recomendaciones de exposición, color, coherencia, similitud, selección, ajustes globales y máscaras.
+- Cada recomendación puede quedar confirmada, rechazada o pendiente.
+- No existe una acción que aplique resultados automáticamente ni que modifique XMP/ACR.
+- El estado se almacena sólo en la base local del workflow y conserva referencia al activo correspondiente.
 
 ### P0-15. Verificar límites de seguridad
 
@@ -244,8 +265,8 @@ Probar el recorrido completo con una sesión representativa de hasta 200 fotogra
 
 **Criterios de aceptación**
 
-- El inventario, filtrado, generación de proxies y hoja de contacto completan sin procesar visualmente en detalle las 200 fotografías.
-- El análisis detallado se limita a la selección confirmada.
+- El inventario, filtrado, generación de proxies y hoja de contacto completan sin preparar individualmente las 200 fotografías para revisión asistida.
+- El paquete de revisión se limita a la selección confirmada.
 - Se registran tiempos y uso de almacenamiento para decidir objetivos de rendimiento posteriores.
 
 ## Definición de terminado de la Fase 0
@@ -257,7 +278,9 @@ La Fase 0 estará terminada cuando todas las tareas P0-01 a P0-16 cumplan sus cr
 - Herramientas concretas para EXIF, decodificación NEF, gestión de color y generación de proxies.
 - Convención exacta para identificar JPG exportados desde Lightroom cuando hay múltiples versiones.
 - Semántica de los archivos ACR auxiliares reales encontrados en sesiones.
-- Umbrales, métricas y presentación de confianza de cada análisis visual.
+- Posible análisis visual local y sus métricas de calidad.
+- Posible integración mediante API con consentimiento y credenciales separados.
+- Posible importación estructurada de resultados de una revisión externa.
 - Algoritmo de similitud y agrupación automática avanzada.
 - Política manual de retención y limpieza de proxies y hojas de contacto.
 - Preproducción, propuesta creativa interna, propuesta para la modelo y planificación.

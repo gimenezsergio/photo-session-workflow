@@ -20,8 +20,9 @@ El proyecto está en diseño documental de la Fase 0. Hasta que el usuario aprue
 - Soportar inicialmente Nikon NEF de una Nikon D7000, JPG, sidecars XMP y archivos ACR auxiliares.
 - Leer inventario, relaciones por nombre base, EXIF y estrellas desde XMP después de que el usuario guarde metadatos en Lightroom con `Ctrl+S`; las estrellas representan únicamente el último estado guardado en el sidecar.
 - Generar proxies JPG sRGB y hojas de contacto en un workspace privado externo.
-- Permitir que el usuario confirme una selección reducida antes del análisis visual detallado.
-- Producir sólo sugerencias; toda conclusión creativa o técnica requiere confirmación del usuario.
+- Permitir que el usuario confirme una selección reducida antes de preparar el paquete local para análisis visual asistido.
+- Generar el paquete únicamente con la selección confirmada, sin transmitirlo automáticamente.
+- Tratar las sugerencias como resultados de una revisión asistida externa iniciada manualmente por el usuario, no como cálculos internos de la aplicación.
 
 Quedan fuera de la Fase 0 la preproducción, las propuestas creativas, las presentaciones para modelos, la agrupación automática avanzada y cualquier escritura o recuperación XMP.
 
@@ -44,6 +45,7 @@ Quedan fuera de la Fase 0 la preproducción, las propuestas creativas, las prese
 - Toda operación futura que escriba archivos debe ser idempotente cuando sea posible, auditable y reversible.
 - La capacidad de lectura de la Fase 0 no debe compartir una ruta de código con futuras escrituras sobre fuentes.
 - No incorporar en la Fase 0 adaptadores para escribir XMP, acceder a `.lrcat` o controlar Lightroom directamente.
+- No incorporar integración con ChatGPT, APIs externas, carga automática ni almacenamiento de credenciales.
 
 ## Criterios para cambios futuros
 
