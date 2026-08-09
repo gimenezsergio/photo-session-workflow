@@ -10,6 +10,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING, BinaryIO
 
 if TYPE_CHECKING:
+    from .exif import ExifReadResult, ExifSourceSelection, ExifToolAdapter
     from .inventory import InventoryResult
 
 
@@ -201,6 +202,18 @@ class SessionReader:
             recursive=recursive,
             target_photo_count=target_photo_count,
         )
+
+    def _read_exif_with(
+        self,
+        adapter: "ExifToolAdapter",
+        selection: "ExifSourceSelection",
+    ) -> "ExifReadResult":
+        """Validate a selected source before handing it to the trusted adapter."""
+
+        if selection.relative_path is None:
+            raise PathBoundaryError("EXIF source must be a relative session file")
+        source = self._existing_file(selection.relative_path)
+        return adapter._read_validated_path(source, selection)
 
 
 class WorkspaceWriter:

@@ -4,7 +4,7 @@ Proyecto local para diseñar y, más adelante, implementar un flujo de producci�
 
 ## Estado
 
-P0-01, P0-02 y P0-03 de la Fase 0 están implementados: configuración local, fronteras de rutas, capacidades separadas de lectura/escritura, fixtures sintéticos temporales e inventario de metadatos del filesystem. Todavía no hay aplicación Flask, SQLite, dependencias externas, asociación de archivos ni procesamiento de material real.
+P0-01 a P0-05 de la Fase 0 están implementados: fronteras de rutas, fixtures sintéticos, inventario, relaciones lógicas y lectura EXIF controlada. Todavía no hay aplicación Flask, SQLite, lectura de estrellas XMP, generación de proxies ni procesamiento de material real.
 
 ## Objetivo
 
@@ -39,17 +39,30 @@ La Fase 0 es estrictamente de lectura respecto del material fotográfico y de Li
 - [`docs/phase-0-postproduction.md`](docs/phase-0-postproduction.md): alcance cerrado, tareas y criterios de aceptación de la Fase 0.
 - [`config.example.json`](config.example.json): configuración de rutas ilustrativa sin datos reales.
 
-## Configuración local de P0-01
+## Configuración local
 
-Copiar `config.example.json` como `config.local.json` y reemplazar los tres valores por rutas absolutas existentes:
+Copiar `config.example.json` como `config.local.json` y reemplazar los valores por rutas absolutas existentes:
 
 - `session_root`: carpeta externa de sesión, accesible sólo mediante `SessionReader`;
 - `workspace_root`: workspace privado con capacidad de lectura/escritura;
 - `repository_root`: raíz protegida de este repositorio.
+- `exiftool.executable`: ruta absoluta a una instalación local de `exiftool.exe`, fuera de sesión, workspace y repositorio;
+- `exiftool.timeout_seconds`: timeout conservador por proceso;
+- `exiftool.max_output_bytes`: límite de captura por stream.
 
 `config.local.json` está ignorado por Git. Las tres raíces deben ser disjuntas: la validación rechaza igualdad, anidamiento en cualquier dirección y symlinks, junctions o reparse points detectables.
 
-## Pruebas de P0-01, P0-02 y P0-03
+## ExifTool para P0-05
+
+ExifTool es una dependencia externa futura que debe instalar y administrar explícitamente el usuario. La aplicación no lo descarga, instala ni versiona. Para verificar una instalación local desde PowerShell:
+
+```powershell
+& 'X:\ruta\local\exiftool.exe' -ver
+```
+
+La aplicación sólo ejecuta comandos de lectura con tags fijos, JSON y valores numéricos. No acepta flags configurables. Las pruebas normales usan runners falsos y no requieren ExifTool; la prueba real de versión permanece omitida salvo que se definan `PHOTO_SESSION_EXIFTOOL_INTEGRATION=1` y `PHOTO_SESSION_EXIFTOOL_PATH`.
+
+## Pruebas de P0-01 a P0-05
 
 No se requieren dependencias externas. En Windows, con Python 3.11 o posterior:
 
@@ -75,8 +88,10 @@ photo-session-workflow/
 ├── docs/
 ├── photo_session_workflow/
 │   ├── config.py        # Carga y validación de configuración local
+│   ├── exif.py          # Selección y lectura EXIF filtrada mediante ExifTool
 │   ├── inventory.py     # Inventario inmutable de metadatos del filesystem
-│   └── paths.py         # Fronteras y capacidades de filesystem
+│   ├── paths.py         # Fronteras y capacidades de filesystem
+│   └── relations.py     # Relaciones lógicas entre entradas admitidas
 ├── templates/           # Reservado para plantillas HTML futuras
 ├── tests/               # unittest y generador de fixtures temporales
 ├── .gitignore
@@ -87,4 +102,4 @@ photo-session-workflow/
 
 ## Próxima revisión
 
-La implementación debe detenerse al completar P0-03. P0-04 y las tareas posteriores requieren una autorización nueva. Las preguntas restantes están documentadas como decisiones futuras y no bloquean estas bases.
+La implementación debe detenerse al completar P0-05. P0-06 y las tareas posteriores requieren una autorización nueva. Las preguntas restantes están documentadas como decisiones futuras y no bloquean estas bases.
