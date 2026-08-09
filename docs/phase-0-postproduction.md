@@ -146,6 +146,20 @@ Definir el descubrimiento no destructivo de NEF, JPG, XMP y ACR.
 - Los formatos ajenos se ignoran o informan sin detener el inventario.
 - Cada entrada registra tipo, nombre, tamaño y ubicación de forma segura.
 
+**Implementación inicial**
+
+- `SessionReader.inventory()` delega en una capa de inventario de sólo lectura y no expone la raíz absoluta ni una capacidad de escritura.
+- Reconoce `.nef`, `.jpg`, `.jpeg`, `.xmp` y `.acr` sin distinguir mayúsculas; conserva la extensión original y registra su forma normalizada.
+- Cada entrada admitida contiene únicamente ruta relativa POSIX, nombre, extensiones, categoría, tamaño, modificación UTC en ISO 8601 con nanosegundos, estado y advertencias.
+- Los modelos de entrada, aviso y resultado son inmutables. Los conteos de fotografías, sidecars y auxiliares se mantienen separados.
+- El recorrido puede ser recursivo o no recursivo, no abre contenidos, no calcula hashes y no escribe en la sesión ni en el workspace.
+- El orden estable usa la ruta relativa completa comparada primero mediante `casefold()` y después por su representación original.
+- Los errores de enumeración o metadata se convierten en avisos sanitizados por elemento para continuar cuando sea posible, sin incluir rutas absolutas ni el texto potencialmente sensible de la excepción.
+- Symlinks, junctions y reparse points detectables se rechazan y nunca se recorren. La protección cubre errores de la aplicación y rutas accidentales, no cambios hostiles simultáneos del filesystem.
+- `.lrcat`, `.lrcat-data` y `.lrdata` se rechazan por nombre antes de consultar sus metadatos y nunca se abren ni recorren.
+- Superar el objetivo configurable de 200 fotografías genera la advertencia `photo_volume_exceeds_target` y conserva el inventario completo; no se aplica un límite silencioso.
+- P0-03 no relaciona nombres base, no interpreta XMP/XML, no extrae EXIF y no decodifica NEF/JPG.
+
 ### P0-04. Relacionar por nombre base
 
 Construir relaciones entre archivos de una misma fotografía.
