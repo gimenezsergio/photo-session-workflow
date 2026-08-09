@@ -243,6 +243,179 @@ class BoundaryTests(unittest.TestCase):
                 writer.write_bytes("linked/blocked.txt", b"blocked")
             self.assertFalse((outside / "blocked.txt").exists())
 
+    def test_workspace_writer_rejects_final_symlink_when_available(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            parent = Path(temporary)
+            session, workspace, repository = self._create_siblings(parent)
+            outside = parent / "outside.txt"
+            outside.write_bytes(b"outside-original")
+            writer = WorkspaceWriter(
+                RootBoundaries.create(
+                    session_root=session,
+                    workspace_root=workspace,
+                    repository_root=repository,
+                )
+            )
+            link = workspace / "linked.txt"
+            try:
+                link.symlink_to(outside)
+            except OSError as exc:
+                self.skipTest(f"symbolic links unavailable: {exc}")
+            with self.assertRaisesRegex(PathBoundaryError, "symbolic link"):
+                writer.write_bytes("linked.txt", b"forbidden", overwrite=True)
+            self.assertEqual(outside.read_bytes(), b"outside-original")
+
+    def test_workspace_writer_rejects_final_reparse_point(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            parent = Path(temporary)
+            session, workspace, repository = self._create_siblings(parent)
+            destination = workspace / "existing.txt"
+            destination.write_bytes(b"original")
+            writer = WorkspaceWriter(
+                RootBoundaries.create(
+                    session_root=session,
+                    workspace_root=workspace,
+                    repository_root=repository,
+                )
+            )
+            with patch(
+                "photo_session_workflow.paths._is_reparse_point",
+                side_effect=lambda path: path == destination,
+            ):
+                with self.assertRaisesRegex(PathBoundaryError, "reparse point"):
+                    writer.write_bytes("existing.txt", b"replacement", overwrite=True)
+            self.assertEqual(destination.read_bytes(), b"original")
+
+    def test_workspace_writer_atomically_replaces_regular_file(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            parent = Path(temporary)
+            session, workspace, repository = self._create_siblings(parent)
+            destination = workspace / "existing.txt"
+            destination.write_bytes(b"original")
+            writer = WorkspaceWriter(
+                RootBoundaries.create(
+                    session_root=session,
+                    workspace_root=workspace,
+                    repository_root=repository,
+                )
+            )
+            result = writer.write_bytes(
+                "existing.txt", memoryview(b"replacement"), overwrite=True
+            )
+            self.assertEqual(result, destination.resolve())
+            self.assertEqual(destination.read_bytes(), b"replacement")
+            self.assertEqual(list(workspace.glob(".existing.txt.*.tmp")), [])
+
+    def test_workspace_writer_never_overwrites_without_permission(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            parent = Path(temporary)
+            session, workspace, repository = self._create_siblings(parent)
+            destination = workspace / "existing.txt"
+            destination.write_bytes(b"original")
+            writer = WorkspaceWriter(
+                RootBoundaries.create(
+                    session_root=session,
+                    workspace_root=workspace,
+                    repository_root=repository,
+                )
+            )
+            with self.assertRaises(FileExistsError):
+                writer.write_bytes("existing.txt", b"replacement")
+            self.assertEqual(destination.read_bytes(), b"original")
+
+    def test_workspace_writer_rejects_existing_directory_destination(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            parent = Path(temporary)
+            session, workspace, repository = self._create_siblings(parent)
+            (workspace / "directory.txt").mkdir()
+            writer = WorkspaceWriter(
+                RootBoundaries.create(
+                    session_root=session,
+                    workspace_root=workspace,
+                    repository_root=repository,
+                )
+            )
+            with self.assertRaisesRegex(PathBoundaryError, "regular file"):
+                writer.write_bytes("directory.txt", b"replacement", overwrite=True)
+
+    def test_invalid_content_does_not_create_destination(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            parent = Path(temporary)
+            session, workspace, repository = self._create_siblings(parent)
+            writer = WorkspaceWriter(
+                RootBoundaries.create(
+                    session_root=session,
+                    workspace_root=workspace,
+                    repository_root=repository,
+                )
+            )
+            with self.assertRaisesRegex(TypeError, "content must be bytes"):
+                writer.write_bytes("invalid.txt", object())  # type: ignore[arg-type]
+            self.assertFalse((workspace / "invalid.txt").exists())
+
+    def test_overwrite_requires_existing_regular_file(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            parent = Path(temporary)
+            session, workspace, repository = self._create_siblings(parent)
+            writer = WorkspaceWriter(
+                RootBoundaries.create(
+                    session_root=session,
+                    workspace_root=workspace,
+                    repository_root=repository,
+                )
+            )
+            with self.assertRaisesRegex(PathBoundaryError, "requires an existing"):
+                writer.write_bytes("missing.txt", b"replacement", overwrite=True)
+            self.assertFalse((workspace / "missing.txt").exists())
+
+    def test_failed_atomic_write_preserves_previous_file(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            parent = Path(temporary)
+            session, workspace, repository = self._create_siblings(parent)
+            destination = workspace / "existing.txt"
+            destination.write_bytes(b"original")
+            writer = WorkspaceWriter(
+                RootBoundaries.create(
+                    session_root=session,
+                    workspace_root=workspace,
+                    repository_root=repository,
+                )
+            )
+
+            def fail_after_partial_write(stream: object, content: bytes) -> None:
+                stream.write(content[:3])  # type: ignore[attr-defined]
+                raise OSError("simulated write failure")
+
+            with patch(
+                "photo_session_workflow.paths._write_stream",
+                side_effect=fail_after_partial_write,
+            ):
+                with self.assertRaisesRegex(OSError, "simulated write failure"):
+                    writer.write_bytes("existing.txt", b"replacement", overwrite=True)
+            self.assertEqual(destination.read_bytes(), b"original")
+
+    def test_failed_atomic_write_removes_temporary_file(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            parent = Path(temporary)
+            session, workspace, repository = self._create_siblings(parent)
+            destination = workspace / "existing.txt"
+            destination.write_bytes(b"original")
+            writer = WorkspaceWriter(
+                RootBoundaries.create(
+                    session_root=session,
+                    workspace_root=workspace,
+                    repository_root=repository,
+                )
+            )
+            with patch(
+                "photo_session_workflow.paths._write_stream",
+                side_effect=OSError("simulated write failure"),
+            ):
+                with self.assertRaisesRegex(OSError, "simulated write failure"):
+                    writer.write_bytes("existing.txt", b"replacement", overwrite=True)
+            self.assertEqual(list(workspace.glob(".existing.txt.*.tmp")), [])
+            self.assertEqual(destination.read_bytes(), b"original")
+
 
 if __name__ == "__main__":
     unittest.main()

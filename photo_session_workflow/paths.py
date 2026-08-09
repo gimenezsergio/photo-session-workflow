@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import os
 import stat
+import tempfile
 from dataclasses import dataclass
 from pathlib import Path
 from typing import BinaryIO
@@ -85,6 +86,24 @@ def _require_disjoint(left: Path, right: Path, *, left_label: str, right_label: 
         raise PathBoundaryError(f"{right_label} must not be inside {left_label}")
     if _contains(right, left):
         raise PathBoundaryError(f"{left_label} must not be inside {right_label}")
+
+
+def _binary_content(content: object) -> bytes:
+    """Copy explicitly supported binary inputs before touching the filesystem."""
+
+    if isinstance(content, bytes):
+        return content
+    if isinstance(content, (bytearray, memoryview)):
+        return bytes(content)
+    raise TypeError("content must be bytes, bytearray, or memoryview")
+
+
+def _write_stream(stream: BinaryIO, content: bytes) -> None:
+    """Write and synchronize a complete binary payload."""
+
+    stream.write(content)
+    stream.flush()
+    os.fsync(stream.fileno())
 
 
 @dataclass(frozen=True, slots=True, init=False)
@@ -180,15 +199,31 @@ class WorkspaceWriter:
     def write_bytes(
         self,
         relative_path: str | os.PathLike[str],
-        content: bytes,
+        content: bytes | bytearray | memoryview,
         *,
         overwrite: bool = False,
     ) -> Path:
+        payload = _binary_content(content)
         relative = Path(relative_path)
         if not os.fspath(relative_path) or relative.is_absolute():
             raise PathBoundaryError("workspace path must be a non-empty relative path")
         destination = self._root / relative
         parent = destination.parent
+        resolved_parent = self._validated_parent(parent)
+        resolved_destination = self._validated_destination(
+            resolved_parent / destination.name,
+            require_regular=overwrite,
+        )
+
+        if overwrite:
+            return self._replace_atomically(
+                resolved_parent,
+                resolved_destination,
+                payload,
+            )
+        return self._create_exclusively(resolved_parent, resolved_destination, payload)
+
+    def _validated_parent(self, parent: Path) -> Path:
         reject_links_or_reparse_points(parent, label="workspace path")
         try:
             resolved_parent = parent.resolve(strict=True)
@@ -196,8 +231,117 @@ class WorkspaceWriter:
             raise PathBoundaryError("workspace parent directory must already exist") from exc
         if not _contains(self._root, resolved_parent):
             raise PathBoundaryError("workspace path escapes workspace_root")
-        resolved_destination = resolved_parent / destination.name
-        mode = "wb" if overwrite else "xb"
-        with resolved_destination.open(mode) as stream:
-            stream.write(content)
-        return resolved_destination
+        if not stat.S_ISDIR(parent.stat(follow_symlinks=False).st_mode):
+            raise PathBoundaryError("workspace parent must be a regular directory")
+        return resolved_parent
+
+    def _validated_destination(
+        self,
+        destination: Path,
+        *,
+        require_regular: bool,
+    ) -> Path:
+        reject_links_or_reparse_points(destination, label="workspace destination")
+        exists = os.path.lexists(destination)
+        if exists:
+            try:
+                resolved = destination.resolve(strict=True)
+            except (OSError, RuntimeError) as exc:
+                raise PathBoundaryError("workspace destination is invalid") from exc
+            if not _contains(self._root, resolved):
+                raise PathBoundaryError("workspace destination escapes workspace_root")
+            try:
+                mode = destination.stat(follow_symlinks=False).st_mode
+            except OSError as exc:
+                raise PathBoundaryError("workspace destination is invalid") from exc
+            if not stat.S_ISREG(mode):
+                raise PathBoundaryError(
+                    "existing workspace destination must be a regular file"
+                )
+            return resolved
+
+        resolved = destination.resolve(strict=False)
+        if not _contains(self._root, resolved):
+            raise PathBoundaryError("workspace destination escapes workspace_root")
+        if require_regular:
+            raise PathBoundaryError(
+                "overwrite=True requires an existing regular workspace file"
+            )
+        return resolved
+
+    def _create_exclusively(
+        self,
+        expected_parent: Path,
+        destination: Path,
+        payload: bytes,
+    ) -> Path:
+        current_parent = self._validated_parent(destination.parent)
+        if current_parent != expected_parent:
+            raise PathBoundaryError("workspace parent changed before writing")
+        destination = self._validated_destination(
+            current_parent / destination.name,
+            require_regular=False,
+        )
+        created = False
+        try:
+            stream = destination.open("xb")
+            created = True
+            with stream:
+                _write_stream(stream, payload)
+        except BaseException:
+            if created:
+                try:
+                    destination.unlink()
+                except OSError:
+                    pass
+            raise
+        return destination
+
+    def _replace_atomically(
+        self,
+        expected_parent: Path,
+        destination: Path,
+        payload: bytes,
+    ) -> Path:
+        current_parent = self._validated_parent(destination.parent)
+        if current_parent != expected_parent:
+            raise PathBoundaryError("workspace parent changed before writing")
+        destination = self._validated_destination(
+            current_parent / destination.name,
+            require_regular=True,
+        )
+
+        descriptor = -1
+        temporary_path: Path | None = None
+        try:
+            descriptor, temporary_name = tempfile.mkstemp(
+                dir=current_parent,
+                prefix=f".{destination.name}.",
+                suffix=".tmp",
+            )
+            temporary_path = Path(temporary_name)
+            with os.fdopen(descriptor, "wb") as stream:
+                descriptor = -1
+                _write_stream(stream, payload)
+
+            final_parent = self._validated_parent(destination.parent)
+            if final_parent != current_parent:
+                raise PathBoundaryError("workspace parent changed before replacement")
+            final_destination = self._validated_destination(
+                final_parent / destination.name,
+                require_regular=True,
+            )
+            os.replace(temporary_path, final_destination)
+            temporary_path = None
+            return final_destination
+        finally:
+            if descriptor != -1:
+                try:
+                    os.close(descriptor)
+                except OSError:
+                    pass
+            if temporary_path is not None:
+                try:
+                    temporary_path.unlink()
+                except FileNotFoundError:
+                    pass

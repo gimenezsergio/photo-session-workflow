@@ -114,6 +114,10 @@ Documentar entradas, workspace y reglas de separación de rutas.
 - Las raíces deben existir y ser disjuntas; se rechazan igualdad, anidamiento en ambas direcciones y enlaces o reparse points detectables.
 - `SessionReader` sólo expone lectura de archivos existentes; `WorkspaceWriter` es una capacidad separada que sólo escribe dentro del workspace.
 - Esta separación reduce el riesgo de que una operación futura de lectura reutilice accidentalmente una interfaz de escritura sobre la sesión.
+- `WorkspaceWriter` valida contenido, padre y destino final antes de escribir. Rechaza destinos existentes que sean enlaces, reparse points, junctions o tipos distintos de archivo regular.
+- Con `overwrite=True`, exige un archivo regular existente, escribe y sincroniza un temporal en el mismo directorio, lo cierra, revalida las fronteras y publica mediante `os.replace`. El archivo anterior se conserva si falla la escritura previa al reemplazo.
+- Con `overwrite=False`, usa creación exclusiva (`xb`) y nunca reemplaza una entrada existente. Ante una excepción controlada intenta eliminar el archivo incompleto, pero la publicación no es atómica: una caída abrupta del proceso o del sistema podría dejar un archivo parcial visible.
+- Las revalidaciones reducen errores accidentales y condiciones TOCTOU internas, pero no constituyen un sandbox contra otro proceso local hostil que cambie directorios o entradas simultáneamente.
 
 ### P0-02. Definir fixtures sintéticos
 
