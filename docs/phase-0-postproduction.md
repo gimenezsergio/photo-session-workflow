@@ -204,13 +204,13 @@ Crear una vista general a partir de proxies.
 
 ### P0-11. Confirmar la selección reducida
 
-Registrar una decisión explícita del usuario antes del análisis detallado.
+Registrar una decisión explícita del usuario antes de preparar el paquete de revisión.
 
 **Criterios de aceptación**
 
 - El usuario puede añadir y quitar fotografías antes de confirmar.
 - La confirmación muestra el conteo y recomienda un rango de 12 a 30 sin imponerlo silenciosamente.
-- No se inicia análisis detallado sin confirmación explícita.
+- No se genera el paquete de revisión sin confirmación explícita.
 - La confirmación no escribe estrellas ni selecciones en Lightroom/XMP.
 
 ### P0-12. Generar el paquete de revisión

@@ -24,7 +24,7 @@ La visión completa incluye preproducción, propuesta creativa y posproducción.
 - Leer EXIF y estrellas desde XMP; el usuario debe guardar previamente los metadatos desde Lightroom con `Ctrl+S`, y las estrellas representan únicamente ese último estado guardado en el sidecar.
 - Tratar XMP como única fuente accesible de estrellas y advertir que puede no coincidir con el catálogo.
 
-### Reducción y análisis
+### Reducción y preparación para revisión
 
 - Filtrar el inventario por estrellas leídas desde XMP.
 - Generar proxies JPG sRGB, con lado largo configurable —2048 px por defecto— y calidad aproximada de 85.
@@ -153,8 +153,8 @@ Estos requisitos describen la dirección futura y no autorizan escritura XMP dur
 ## Criterios de aceptación del diseño previo a implementación
 
 - Las rutas y fronteras de escritura están definidas y son verificables.
-- Existe una política acordada de versionado y restauración XMP.
+- El versionado y la restauración XMP permanecen explícitamente fuera de la Fase 0 y documentados como trabajo futuro.
 - Los datos privados se separan del contenido compartible y del repositorio.
 - El flujo de selección puede funcionar sin modificar RAW ni `.lrcat`.
 - Las decisiones pendientes críticas tienen responsable y resolución documentada.
-- Cada preview identifica su fuente y el usuario confirma la selección antes del análisis detallado.
+- Cada preview identifica su fuente y el usuario confirma la selección antes de la preparación del paquete de revisión.
