@@ -5,6 +5,7 @@ import tempfile
 import unittest
 from dataclasses import FrozenInstanceError
 from pathlib import Path
+from unittest import mock
 
 from photo_session_workflow.inventory import InventoryEntry, InventoryResult
 from photo_session_workflow.paths import RootBoundaries, SessionReader
@@ -197,6 +198,84 @@ class RatedSelectionTests(unittest.TestCase):
             "skipped_ambiguous_asset",
         )
 
+    def test_orphan_xmp_is_not_opened_or_selected(self) -> None:
+        self._write("orphan.xmp", self._attribute_xmp("5"))
+        relations = self._relations("orphan.xmp")
+        asset = relations.assets[0]
+        with mock.patch.object(
+            SessionReader,
+            "_read_xmp_rating_with",
+            side_effect=AssertionError("orphan XMP must not be opened"),
+        ):
+            rating = XmpRatingReader().read_asset(self.reader, asset)
+
+        self.assertEqual(rating.status, "skipped_no_photographic_file")
+        selection = filter_assets_by_rating(
+            relations, (rating,), RatingFilter.create(minimum_rating=1)
+        )
+        self.assertEqual(selection.selected, ())
+        self.assertEqual(selection.excluded[0].reason, "photographic_file_missing")
+
+    def test_acr_and_xmp_without_photo_are_not_selected(self) -> None:
+        relations = self._relations("orphan.acr", "orphan.xmp")
+        asset = relations.assets[0]
+        manual_rating = RatingReadResult(
+            asset.asset_id, 5, "rated", "orphan.xmp", (), None
+        )
+        selection = filter_assets_by_rating(
+            relations, (manual_rating,), RatingFilter.create(minimum_rating=1)
+        )
+        self.assertEqual(selection.selected, ())
+        self.assertEqual(selection.excluded[0].reason, "photographic_file_missing")
+
+    def test_ambiguous_asset_with_manual_rating_is_not_selected(self) -> None:
+        relations = self._relations("photo.NEF", "photo.nef", "photo.xmp")
+        asset = relations.assets[0]
+        manual_rating = RatingReadResult(
+            asset.asset_id, 5, "rated", "photo.xmp", (), None
+        )
+        selection = filter_assets_by_rating(
+            relations, (manual_rating,), RatingFilter.create(minimum_rating=1)
+        )
+        self.assertEqual(selection.selected, ())
+        self.assertEqual(selection.excluded[0].reason, "asset_ambiguous")
+
+    def test_unknown_and_duplicate_rating_results_are_rejected(self) -> None:
+        relations = self._relations("photo.NEF")
+        asset = relations.assets[0]
+        known = RatingReadResult(asset.asset_id, 5, "rated", None, (), None)
+        unknown = RatingReadResult("asset:.:unknown", 5, "rated", None, (), None)
+        applied_filter = RatingFilter.create(minimum_rating=1)
+        with self.assertRaisesRegex(ValueError, "unknown asset identifiers"):
+            filter_assets_by_rating(relations, (known, unknown), applied_filter)
+        with self.assertRaisesRegex(ValueError, "duplicate asset identifiers"):
+            filter_assets_by_rating(relations, (known, known), applied_filter)
+
+    def test_missing_rating_result_remains_an_explicit_error(self) -> None:
+        relations = self._relations("photo.NEF")
+        selection = filter_assets_by_rating(
+            relations, (), RatingFilter.create(minimum_rating=1)
+        )
+        self.assertEqual(selection.selected, ())
+        excluded = selection.excluded[0]
+        self.assertEqual(excluded.reason, "status_error")
+        self.assertEqual(excluded.rating_result.error_code, "rating_result_missing")
+
+    def test_manifest_never_contains_assets_without_photographs(self) -> None:
+        relations = self._relations(
+            "photo.NEF", "photo.xmp", "orphan.xmp", "auxiliary.acr"
+        )
+        ratings = tuple(
+            RatingReadResult(asset.asset_id, 5, "rated", None, (), None)
+            for asset in relations.assets
+        )
+        selection = filter_assets_by_rating(
+            relations, ratings, RatingFilter.create(minimum_rating=1)
+        )
+        manifest = build_preliminary_manifest(selection)
+        self.assertEqual(manifest.selected_count, 1)
+        self.assertEqual(manifest.assets[0].identifier_name, "photo")
+
     def test_minimum_three_filter_selects_three_four_five(self) -> None:
         relations = self._relations("one.NEF", "two.NEF", "three.NEF", "four.NEF", "five.NEF")
         ratings = tuple(
@@ -282,9 +361,9 @@ class RatedSelectionTests(unittest.TestCase):
         selection = filter_assets_by_rating(
             relations, ratings, RatingFilter.create(minimum_rating=3)
         )
-        item = build_preliminary_manifest(selection).assets[0]
-        self.assertIsNone(item.jpg_candidate_relative_path)
-        self.assertIn("jpg_candidate_ambiguous", item.warnings)
+        self.assertEqual(selection.selected, ())
+        self.assertEqual(selection.excluded[0].reason, "asset_ambiguous")
+        self.assertEqual(build_preliminary_manifest(selection).assets, ())
 
     def test_manifest_is_deterministic_valid_and_minimized(self) -> None:
         relations = self._relations("Selección Ñ/photo.NEF", "Selección Ñ/photo.xmp", "Selección Ñ/photo.jpg")

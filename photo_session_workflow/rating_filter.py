@@ -71,6 +71,9 @@ def filter_assets_by_rating(
     rating_by_asset = {result.asset_id: result for result in ratings}
     if len(rating_by_asset) != len(ratings):
         raise ValueError("rating results contain duplicate asset identifiers")
+    known_asset_ids = {asset.asset_id for asset in relations.assets}
+    if unknown_asset_ids := set(rating_by_asset).difference(known_asset_ids):
+        raise ValueError("rating results contain unknown asset identifiers")
     selected: list[SelectedRatedAsset] = []
     excluded: list[ExcludedRatedAsset] = []
     for asset in relations.assets:
@@ -80,7 +83,11 @@ def filter_assets_by_rating(
                 asset.asset_id, None, "error", None, (), "rating_result_missing"
             )
         reason: str | None = None
-        if rating_result.status != "rated" or rating_result.rating is None:
+        if asset.status == "ambiguous":
+            reason = "asset_ambiguous"
+        elif not (asset.components_for("raw") or asset.components_for("image")):
+            reason = "photographic_file_missing"
+        elif rating_result.status != "rated" or rating_result.rating is None:
             reason = f"status_{rating_result.status}"
         elif applied_filter.exact_ratings:
             if rating_result.rating not in applied_filter.exact_ratings:

@@ -40,6 +40,10 @@ def select_rating_sidecar(asset: LogicalAsset) -> RatingSourceSelection:
         return RatingSourceSelection(asset.asset_id, "skipped_ambiguous_sidecar", None)
     if asset.status == "ambiguous":
         return RatingSourceSelection(asset.asset_id, "skipped_ambiguous_asset", None)
+    if not (asset.components_for("raw") or asset.components_for("image")):
+        return RatingSourceSelection(
+            asset.asset_id, "skipped_no_photographic_file", None
+        )
     if not sidecars:
         return RatingSourceSelection(asset.asset_id, "missing", None)
     return RatingSourceSelection(

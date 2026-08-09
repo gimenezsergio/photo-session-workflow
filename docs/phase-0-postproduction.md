@@ -230,7 +230,7 @@ Interpretar el rating XMP sin consultar `.lrcat`.
 - Se rechazan antes del parseo los documentos que superan el límite o contienen `DOCTYPE`/`ENTITY`, incluidos marcadores detectables en UTF-16/UTF-32. ElementTree no recibe resolutores externos.
 - Los valores `1..5` son `rated`, `0` es `unrated`, `-1` es `rejected`, la ausencia es `missing` y los valores no permitidos o contradictorios son `invalid`.
 - Múltiples valores iguales se aceptan con `duplicate_rating_values`; valores diferentes producen `rating_values_conflict` y no se elige ninguno.
-- Activos ambiguos y sidecars múltiples se omiten mediante `skipped_ambiguous_asset` o `skipped_ambiguous_sidecar`. XML malformado, prohibido, grande o inaccesible produce `error` con un código sanitizado.
+- Activos ambiguos y sidecars múltiples se omiten mediante `skipped_ambiguous_asset` o `skipped_ambiguous_sidecar`. Un activo sin componentes NEF/JPG produce `skipped_no_photographic_file` y su XMP no se abre. XML malformado, prohibido, grande o inaccesible produce `error` con un código sanitizado.
 - El resultado sólo conserva identificador, rating normalizado, estado, ruta XMP relativa segura, advertencias y código de error. No conserva XML, rutas absolutas ni texto crudo de excepciones.
 - `xmp_last_saved_state_only` recuerda que el rating representa el último estado guardado desde Lightroom mediante `Ctrl+S`, no una comprobación del catálogo.
 - No se interpretan ajustes, máscaras, ACR ni otros campos XMP y no se consulta `.lrcat`.
@@ -248,7 +248,7 @@ Permitir reducir el inventario antes de generar o analizar derivados.
 **Implementación inicial**
 
 - `RatingFilter` inmutable admite un mínimo de `1..5` o, de forma mutuamente excluyente, un conjunto exacto no vacío de ratings `1..5`.
-- `filter_assets_by_rating()` es pura y mantiene el orden de P0-04. Selecciona sólo resultados `rated` que cumplen el filtro.
+- `filter_assets_by_rating()` es pura y mantiene el orden de P0-04. Selecciona sólo resultados `rated` que cumplen el filtro, pertenecen a un activo conocido no ambiguo y conservan al menos un componente NEF/JPG.
 - `unrated`, `rejected`, `missing`, `invalid`, `error` y estados omitidos se excluyen por defecto con un motivo explícito; un rating bajo o fuera del conjunto también conserva su motivo.
 - El resultado informa total evaluado, seleccionados y excluidos sin cambiar archivos ni valores de rating.
 - Un error de lectura se registra por activo y no impide procesar los demás.
