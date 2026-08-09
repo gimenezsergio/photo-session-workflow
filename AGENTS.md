@@ -6,7 +6,7 @@ Estas instrucciones aplican a todo el proyecto.
 
 ## Estado actual
 
-La implementación está autorizada exclusivamente para P0-01 a P0-07 y un recorte de P0-08:
+La implementación está autorizada exclusivamente para P0-01 a P0-07, un recorte de P0-08 y un paquete local limitado con exportaciones Lightroom declaradas:
 
 - contrato de sesión, configuración y fronteras de rutas;
 - fixtures sintéticos generados durante las pruebas.
@@ -14,10 +14,11 @@ La implementación está autorizada exclusivamente para P0-01 a P0-07 y un recor
 - relaciones lógicas deterministas entre entradas admitidas del inventario.
 - lectura EXIF filtrada mediante un ejecutable ExifTool local configurado por el usuario.
 - lectura acotada de `xmp:Rating`, filtrado puro por estrellas y manifiesto preliminar en memoria con candidato JPG exacto.
+- inventario separado de una subcarpeta de exportación declarada, resolución exacta de JPG para activos seleccionados, manifiesto 0.2 y ZIP local sin hoja de contacto.
 
 Hasta una nueva autorización:
 
-- no avanzar más allá del bloque autorizado ni completar P0-08;
+- no generar aproximaciones desde NEF, proxies ni hoja de contacto, ni ampliar la resolución exacta autorizada;
 - no interpretar del XMP nada distinto de `xmp:Rating`, ni interpretar ACR o decodificar NEF/JPG;
 - no inicializar Flask ni SQLite;
 - no instalar dependencias sin justificación previa;
@@ -69,7 +70,12 @@ Quedan fuera de la Fase 0 la preproducción, las propuestas creativas, las prese
 - P0-07 sólo filtra modelos en memoria; nunca cambia ratings ni escribe XMP.
 - Un JPG relacionado exactamente por P0-04 es sólo `jpg_candidate`; no afirmar que fue exportado por Lightroom.
 - El manifiesto preliminar es determinista, permanece en memoria y no contiene imágenes, EXIF completo, contenido XMP, GPS, rutas absolutas ni timestamps de generación.
-- No generar proxies, hojas de contacto, copias, ZIP, archivos de manifiesto ni persistencia hasta nueva autorización.
+- La carpeta configurada mediante `lightroom_export_relative_directory` es una subcarpeta relativa, existente y declarada por el usuario; sólo sus JPG/JPEG directos pueden considerarse exportaciones Lightroom, sin verificar su historial real.
+- El inventario de exportaciones es separado, no recursivo y no interpreta XMP. Los JPG de cámara del inventario principal nunca sustituyen una exportación declarada dentro del paquete.
+- La resolución usa exclusivamente el nombre base exacto comparado con `casefold()`; faltantes, duplicados, entradas inválidas y sufijos no inferidos bloquean un paquete incompleto.
+- El ZIP autorizado contiene sólo `manifest.json` 0.2 e imágenes JPG/JPEG resueltas bajo `images/`, se publica exclusivamente en el workspace y nunca se transmite.
+- No afirmar que el empaquetado elimina EXIF incrustado: la política de metadatos depende de la configuración de exportación utilizada en Lightroom.
+- No generar proxies, aproximaciones NEF, hojas de contacto, Flask, SQLite ni persistencia adicional hasta nueva autorización.
 
 ## Criterios para cambios futuros
 
