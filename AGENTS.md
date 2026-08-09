@@ -6,15 +6,16 @@ Estas instrucciones aplican a todo el proyecto.
 
 ## Estado actual
 
-La implementación está autorizada exclusivamente para P0-01, P0-02 y P0-03:
+La implementación está autorizada exclusivamente para P0-01 a P0-04:
 
 - contrato de sesión, configuración y fronteras de rutas;
 - fixtures sintéticos generados durante las pruebas.
 - inventario recursivo y no destructivo de metadatos básicos del filesystem.
+- relaciones lógicas deterministas entre entradas admitidas del inventario.
 
 Hasta una nueva autorización:
 
-- no avanzar a P0-04 ni relacionar archivos por nombre base;
+- no avanzar a P0-05 ni extraer EXIF;
 - no interpretar XML/XMP, extraer EXIF ni decodificar NEF/JPG;
 - no inicializar Flask ni SQLite;
 - no instalar dependencias sin justificación previa;
@@ -55,6 +56,9 @@ Quedan fuera de la Fase 0 la preproducción, las propuestas creativas, las prese
 - No incorporar integración con ChatGPT, APIs externas, carga automática ni almacenamiento de credenciales.
 - P0-03 sólo puede observar nombres y metadatos del filesystem: no debe abrir el contenido de archivos admitidos, ignorados o prohibidos.
 - Los resultados de inventario deben usar rutas relativas y mensajes sanitizados; no deben exponer raíces absolutas.
+- P0-04 sólo puede relacionar modelos ya admitidos por P0-03; no debe volver a recorrer el filesystem ni abrir contenidos.
+- Las relaciones se limitan al directorio relativo y al nombre sin la última extensión comparado con `casefold()`; no deben inferir sufijos de exportación.
+- Toda entrada admitida debe quedar representada exactamente una vez y toda duplicidad o colisión debe permanecer visible.
 
 ## Criterios para cambios futuros
 

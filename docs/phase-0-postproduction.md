@@ -170,6 +170,21 @@ Construir relaciones entre archivos de una misma fotografía.
 - Colisiones por mayúsculas, duplicados o múltiples JPG se muestran como ambigüedades.
 - La relación no renombra ni mueve archivos.
 
+**Implementación inicial**
+
+- `relate_inventory()` opera exclusivamente sobre `InventoryResult.entries`; los elementos ignorados y rechazados por P0-03 no participan.
+- La clave lógica combina el directorio relativo exacto y el nombre sin su última extensión comparado mediante `casefold()`. El mismo nombre base en directorios diferentes produce activos distintos.
+- Los componentes preservan como procedencia la entrada inmutable completa del inventario, incluida ruta relativa, nombre, capitalización y extensión originales.
+- Los roles son `raw` para NEF, `image` para JPG/JPEG, `sidecar` para XMP y `auxiliary` para ACR.
+- Un activo sin ambigüedades que contiene al menos un NEF o JPG/JPEG es `complete`. La falta de XMP, RAW o imagen complementaria queda como advertencia y no descarta el activo.
+- Un grupo que contiene sólo XMP o ACR es `incomplete` y conserva todos sus componentes.
+- Un activo es `ambiguous` si tiene más de un candidato para cualquier rol o si sus nombres base colisionan únicamente por capitalización. Ningún candidato se elige silenciosamente.
+- El identificador usa sólo el directorio relativo y el nombre base normalizado, codificados como texto estable; no depende de timestamps, rutas absolutas ni hashes de contenido y es apto como clave textual futura en SQLite.
+- Los activos se ordenan por directorio relativo normalizado y nombre base normalizado; los componentes se ordenan por rol y ruta relativa. La misma entrada produce siempre el mismo resultado.
+- El resultado informa conteos por estado y verifica que cada entrada admitida esté representada exactamente una vez.
+- Sufijos como `-Edit` o `_v2` no se interpretan: esos JPG forman activos separados. El reconocimiento futuro de variantes exportadas queda fuera de P0-04.
+- La relación no recorre el filesystem, no abre NEF/JPG/XMP/ACR, no interpreta metadatos, no calcula hashes y no escribe en sesión ni workspace.
+
 ### P0-05. Leer EXIF
 
 Definir y extraer el conjunto mínimo de EXIF necesario.
