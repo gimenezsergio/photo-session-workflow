@@ -4,7 +4,7 @@ Proyecto local para diseñar y, más adelante, implementar un flujo de producci�
 
 ## Estado
 
-P0-01 y P0-02 de la Fase 0 están implementados: configuración local, fronteras de rutas, capacidades separadas de lectura/escritura y fixtures sintéticos temporales. Todavía no hay aplicación Flask, SQLite, dependencias externas, descubrimiento de fotografías ni procesamiento de material real.
+P0-01, P0-02 y P0-03 de la Fase 0 están implementados: configuración local, fronteras de rutas, capacidades separadas de lectura/escritura, fixtures sintéticos temporales e inventario de metadatos del filesystem. Todavía no hay aplicación Flask, SQLite, dependencias externas, asociación de archivos ni procesamiento de material real.
 
 ## Objetivo
 
@@ -49,7 +49,7 @@ Copiar `config.example.json` como `config.local.json` y reemplazar los tres valo
 
 `config.local.json` está ignorado por Git. Las tres raíces deben ser disjuntas: la validación rechaza igualdad, anidamiento en cualquier dirección y symlinks, junctions o reparse points detectables.
 
-## Pruebas de P0-01 y P0-02
+## Pruebas de P0-01, P0-02 y P0-03
 
 No se requieren dependencias externas. En Windows, con Python 3.11 o posterior:
 
@@ -63,7 +63,9 @@ Si `python` ya está disponible en `PATH`:
 python -m unittest discover -s tests -v
 ```
 
-Los tests generan en directorios temporales archivos de texto con extensiones `.NEF`, `.jpg`, `.xmp` y `.acr`. No son fotografías ni validan decodificación RAW/JPEG; sólo representan nombres, relaciones y variantes de metadatos para P0-02.
+Los tests generan en directorios temporales archivos de texto con extensiones `.NEF`, `.jpg`, `.xmp` y `.acr`. No son fotografías ni validan decodificación RAW/JPEG; sólo representan nombres, casos sintéticos y metadatos del filesystem.
+
+Las pruebas de P0-03 verifican recorrido recursivo y no recursivo, extensiones sin distinción de mayúsculas, orden estable, rutas relativas, aislamiento de errores, rechazo de datos Lightroom y enlaces detectables, volumen superior a 200 fotografías simuladas y ausencia de lecturas de contenido o escrituras. Las pruebas de symlinks se omiten cuando Windows no concede el privilegio necesario; la detección de reparse points también tiene cobertura determinista independiente.
 
 ## Estructura inicial
 
@@ -73,6 +75,7 @@ photo-session-workflow/
 ├── docs/
 ├── photo_session_workflow/
 │   ├── config.py        # Carga y validación de configuración local
+│   ├── inventory.py     # Inventario inmutable de metadatos del filesystem
 │   └── paths.py         # Fronteras y capacidades de filesystem
 ├── templates/           # Reservado para plantillas HTML futuras
 ├── tests/               # unittest y generador de fixtures temporales
@@ -84,4 +87,4 @@ photo-session-workflow/
 
 ## Próxima revisión
 
-La implementación debe detenerse al completar P0-01 y P0-02. P0-03 y las tareas posteriores requieren una autorización nueva. Las preguntas restantes están documentadas como decisiones futuras y no bloquean estas bases.
+La implementación debe detenerse al completar P0-03. P0-04 y las tareas posteriores requieren una autorización nueva. Las preguntas restantes están documentadas como decisiones futuras y no bloquean estas bases.

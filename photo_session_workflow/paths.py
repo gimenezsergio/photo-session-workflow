@@ -7,7 +7,10 @@ import stat
 import tempfile
 from dataclasses import dataclass
 from pathlib import Path
-from typing import BinaryIO
+from typing import TYPE_CHECKING, BinaryIO
+
+if TYPE_CHECKING:
+    from .inventory import InventoryResult
 
 
 class PathBoundaryError(ValueError):
@@ -182,6 +185,22 @@ class SessionReader:
     def read_bytes(self, relative_path: str | os.PathLike[str]) -> bytes:
         with self.open_binary(relative_path) as stream:
             return stream.read()
+
+    def inventory(
+        self,
+        *,
+        recursive: bool = True,
+        target_photo_count: int = 200,
+    ) -> "InventoryResult":
+        """Return an immutable metadata-only inventory of the session."""
+
+        from .inventory import _inventory_session
+
+        return _inventory_session(
+            self._root,
+            recursive=recursive,
+            target_photo_count=target_photo_count,
+        )
 
 
 class WorkspaceWriter:
