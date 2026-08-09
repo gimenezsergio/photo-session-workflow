@@ -12,6 +12,7 @@ from typing import TYPE_CHECKING, BinaryIO
 if TYPE_CHECKING:
     from .exif import ExifReadResult, ExifSourceSelection, ExifToolAdapter
     from .inventory import InventoryResult
+    from .xmp_rating import RatingReadResult, RatingSourceSelection, XmpRatingReader
 
 
 class PathBoundaryError(ValueError):
@@ -214,6 +215,19 @@ class SessionReader:
             raise PathBoundaryError("EXIF source must be a relative session file")
         source = self._existing_file(selection.relative_path)
         return adapter._read_validated_path(source, selection)
+
+    def _read_xmp_rating_with(
+        self,
+        xmp_reader: "XmpRatingReader",
+        selection: "RatingSourceSelection",
+    ) -> "RatingReadResult":
+        """Open one validated XMP sidecar for the trusted bounded parser."""
+
+        if selection.relative_path is None:
+            raise PathBoundaryError("XMP source must be a relative session file")
+        source = self._existing_file(selection.relative_path)
+        with source.open("rb") as stream:
+            return xmp_reader._read_validated_stream(stream, selection)
 
 
 class WorkspaceWriter:

@@ -21,6 +21,7 @@ class Phase0Config:
 
     boundaries: RootBoundaries
     exiftool: ExifToolSettings | None = None
+    xmp_max_bytes: int = 262_144
 
     @property
     def session_root(self) -> Path:
@@ -89,4 +90,16 @@ def load_config(config_path: str | os.PathLike[str]) -> Phase0Config:
             raise ConfigurationError(str(exc)) from exc
     else:
         raise ConfigurationError("exiftool configuration must be an object")
-    return Phase0Config(boundaries, exiftool)
+    xmp_payload = payload.get("xmp", {})
+    if not isinstance(xmp_payload, dict):
+        raise ConfigurationError("xmp configuration must be an object")
+    if set(xmp_payload) - {"max_bytes"}:
+        raise ConfigurationError("xmp configuration contains unsupported keys")
+    xmp_max_bytes = xmp_payload.get("max_bytes", 262_144)
+    if (
+        not isinstance(xmp_max_bytes, int)
+        or isinstance(xmp_max_bytes, bool)
+        or not 64 <= xmp_max_bytes <= 10_000_000
+    ):
+        raise ConfigurationError("xmp max_bytes must be between 64 and 10000000")
+    return Phase0Config(boundaries, exiftool, xmp_max_bytes)

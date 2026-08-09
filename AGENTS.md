@@ -6,18 +6,19 @@ Estas instrucciones aplican a todo el proyecto.
 
 ## Estado actual
 
-La implementación está autorizada exclusivamente para P0-01 a P0-05:
+La implementación está autorizada exclusivamente para P0-01 a P0-07 y un recorte de P0-08:
 
 - contrato de sesión, configuración y fronteras de rutas;
 - fixtures sintéticos generados durante las pruebas.
 - inventario recursivo y no destructivo de metadatos básicos del filesystem.
 - relaciones lógicas deterministas entre entradas admitidas del inventario.
 - lectura EXIF filtrada mediante un ejecutable ExifTool local configurado por el usuario.
+- lectura acotada de `xmp:Rating`, filtrado puro por estrellas y manifiesto preliminar en memoria con candidato JPG exacto.
 
 Hasta una nueva autorización:
 
-- no avanzar a P0-06 ni leer estrellas desde XMP;
-- no interpretar XML/XMP o ACR ni decodificar NEF/JPG;
+- no avanzar más allá del bloque autorizado ni completar P0-08;
+- no interpretar del XMP nada distinto de `xmp:Rating`, ni interpretar ACR o decodificar NEF/JPG;
 - no inicializar Flask ni SQLite;
 - no instalar dependencias sin justificación previa;
 - no procesar fotografías reales;
@@ -64,6 +65,11 @@ Quedan fuera de la Fase 0 la preproducción, las propuestas creativas, las prese
 - Los comandos ExifTool deben construirse internamente mediante una allowlist fija, una lista de argumentos y `shell=False`; nunca deben aceptar flags libres ni argumentos con `=`.
 - La salida EXIF debe filtrarse a los campos permitidos y nunca conservar rutas absolutas, GPS, números de serie, propietario, copyright, comentarios, MakerNotes ni stderr crudo.
 - ExifTool es una dependencia local externa: no descargar, instalar ni versionar el ejecutable o su carpeta auxiliar.
+- La lectura XMP debe limitarse a un sidecar no ambiguo validado por `SessionReader`, con tamaño acotado y rechazo de `DOCTYPE`/`ENTITY`.
+- P0-07 sólo filtra modelos en memoria; nunca cambia ratings ni escribe XMP.
+- Un JPG relacionado exactamente por P0-04 es sólo `jpg_candidate`; no afirmar que fue exportado por Lightroom.
+- El manifiesto preliminar es determinista, permanece en memoria y no contiene imágenes, EXIF completo, contenido XMP, GPS, rutas absolutas ni timestamps de generación.
+- No generar proxies, hojas de contacto, copias, ZIP, archivos de manifiesto ni persistencia hasta nueva autorización.
 
 ## Criterios para cambios futuros
 
