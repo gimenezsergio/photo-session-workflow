@@ -7,6 +7,7 @@ import os
 from dataclasses import dataclass
 from pathlib import Path
 
+from .exif import ExifConfigurationError, ExifToolSettings
 from .paths import PathBoundaryError, RootBoundaries
 
 
@@ -19,6 +20,7 @@ class Phase0Config:
     """Validated Phase 0 filesystem configuration."""
 
     boundaries: RootBoundaries
+    exiftool: ExifToolSettings | None = None
 
     @property
     def session_root(self) -> Path:
@@ -65,4 +67,26 @@ def load_config(config_path: str | os.PathLike[str]) -> Phase0Config:
         )
     except (PathBoundaryError, TypeError) as exc:
         raise ConfigurationError(str(exc)) from exc
-    return Phase0Config(boundaries)
+    exiftool_payload = payload.get("exiftool")
+    if exiftool_payload is None:
+        exiftool = None
+    elif isinstance(exiftool_payload, dict):
+        allowed = {"executable", "timeout_seconds", "max_output_bytes"}
+        if set(exiftool_payload) - allowed:
+            raise ConfigurationError("exiftool configuration contains unsupported keys")
+        if "executable" not in exiftool_payload or "timeout_seconds" not in exiftool_payload:
+            raise ConfigurationError(
+                "exiftool configuration requires executable and timeout_seconds"
+            )
+        try:
+            exiftool = ExifToolSettings.create(
+                executable=exiftool_payload["executable"],
+                timeout_seconds=exiftool_payload["timeout_seconds"],
+                max_output_bytes=exiftool_payload.get("max_output_bytes", 65_536),
+                boundaries=boundaries,
+            )
+        except (ExifConfigurationError, TypeError) as exc:
+            raise ConfigurationError(str(exc)) from exc
+    else:
+        raise ConfigurationError("exiftool configuration must be an object")
+    return Phase0Config(boundaries, exiftool)

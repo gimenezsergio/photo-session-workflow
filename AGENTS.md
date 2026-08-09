@@ -6,17 +6,18 @@ Estas instrucciones aplican a todo el proyecto.
 
 ## Estado actual
 
-La implementación está autorizada exclusivamente para P0-01 a P0-04:
+La implementación está autorizada exclusivamente para P0-01 a P0-05:
 
 - contrato de sesión, configuración y fronteras de rutas;
 - fixtures sintéticos generados durante las pruebas.
 - inventario recursivo y no destructivo de metadatos básicos del filesystem.
 - relaciones lógicas deterministas entre entradas admitidas del inventario.
+- lectura EXIF filtrada mediante un ejecutable ExifTool local configurado por el usuario.
 
 Hasta una nueva autorización:
 
-- no avanzar a P0-05 ni extraer EXIF;
-- no interpretar XML/XMP, extraer EXIF ni decodificar NEF/JPG;
+- no avanzar a P0-06 ni leer estrellas desde XMP;
+- no interpretar XML/XMP o ACR ni decodificar NEF/JPG;
 - no inicializar Flask ni SQLite;
 - no instalar dependencias sin justificación previa;
 - no procesar fotografías reales;
@@ -59,6 +60,10 @@ Quedan fuera de la Fase 0 la preproducción, las propuestas creativas, las prese
 - P0-04 sólo puede relacionar modelos ya admitidos por P0-03; no debe volver a recorrer el filesystem ni abrir contenidos.
 - Las relaciones se limitan al directorio relativo y al nombre sin la última extensión comparado con `casefold()`; no deben inferir sufijos de exportación.
 - Toda entrada admitida debe quedar representada exactamente una vez y toda duplicidad o colisión debe permanecer visible.
+- P0-05 sólo puede ejecutar ExifTool sobre un único NEF o, en su ausencia, un único JPG/JPEG de un activo no ambiguo.
+- Los comandos ExifTool deben construirse internamente mediante una allowlist fija, una lista de argumentos y `shell=False`; nunca deben aceptar flags libres ni argumentos con `=`.
+- La salida EXIF debe filtrarse a los campos permitidos y nunca conservar rutas absolutas, GPS, números de serie, propietario, copyright, comentarios, MakerNotes ni stderr crudo.
+- ExifTool es una dependencia local externa: no descargar, instalar ni versionar el ejecutable o su carpeta auxiliar.
 
 ## Criterios para cambios futuros
 

@@ -7,6 +7,7 @@ import unittest
 from pathlib import Path
 
 from photo_session_workflow.config import ConfigurationError, load_config
+from photo_session_workflow.exif import ExifToolSettings
 
 
 class ConfigTests(unittest.TestCase):
@@ -86,6 +87,43 @@ class ConfigTests(unittest.TestCase):
             path.write_text("{invalid", encoding="utf-8")
             with self.assertRaisesRegex(ConfigurationError, "valid UTF-8 JSON"):
                 load_config(path)
+
+    def test_exiftool_configuration_is_loaded_without_free_arguments(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            parent = Path(temporary)
+            session, workspace, repository = self._roots(parent)
+            executable = parent / "tools" / "exiftool.exe"
+            executable.parent.mkdir()
+            executable.write_bytes(b"synthetic executable marker")
+            config_path = self._write_config(parent, session, workspace, repository)
+            payload = json.loads(config_path.read_text(encoding="utf-8"))
+            payload["exiftool"] = {
+                "executable": os.fspath(executable),
+                "timeout_seconds": 7,
+                "max_output_bytes": 2048,
+            }
+            config_path.write_text(json.dumps(payload), encoding="utf-8")
+            config = load_config(config_path)
+            self.assertIsInstance(config.exiftool, ExifToolSettings)
+            self.assertEqual(config.exiftool.timeout_seconds, 7)  # type: ignore[union-attr]
+            self.assertEqual(config.exiftool.max_output_bytes, 2048)  # type: ignore[union-attr]
+
+    def test_exiftool_free_arguments_are_rejected(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            parent = Path(temporary)
+            session, workspace, repository = self._roots(parent)
+            executable = parent / "exiftool.exe"
+            executable.write_bytes(b"synthetic executable marker")
+            config_path = self._write_config(parent, session, workspace, repository)
+            payload = json.loads(config_path.read_text(encoding="utf-8"))
+            payload["exiftool"] = {
+                "executable": os.fspath(executable),
+                "timeout_seconds": 5,
+                "arguments": ["-overwrite_original"],
+            }
+            config_path.write_text(json.dumps(payload), encoding="utf-8")
+            with self.assertRaisesRegex(ConfigurationError, "unsupported keys"):
+                load_config(config_path)
 
     @unittest.skipUnless(os.name == "nt", "Windows-specific path behavior")
     def test_windows_backslash_paths_are_accepted(self) -> None:

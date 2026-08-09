@@ -195,6 +195,22 @@ Definir y extraer el conjunto mínimo de EXIF necesario.
 - La ausencia o corrupción de EXIF produce una advertencia y no altera el archivo.
 - GPS no se copia a proxies ni hojas de contacto.
 
+**Implementación inicial**
+
+- ExifTool es un ejecutable externo configurado localmente; la aplicación no lo descarga, instala ni versiona y no incorpora bibliotecas Python de EXIF.
+- La selección de fuente es pura: usa un único NEF; si no existe, usa un único JPG/JPEG. Los activos `ambiguous` y los que sólo contienen XMP/ACR se omiten sin ejecutar ExifTool.
+- `SessionReader` valida nuevamente la ruta relativa elegida y sólo entrega la ruta absoluta a la instancia interna confiable de `ExifToolAdapter`. La raíz de sesión no se vuelve pública.
+- La colaboración protege contra errores de la aplicación y rutas accidentales; no convierte Python o ExifTool en un sandbox frente a código local hostil o cambios simultáneos del filesystem.
+- El comando usa una lista de argumentos, `shell=False`, timeout, JSON, valores numéricos y una allowlist fija de tags. No admite argumentos libres, asignaciones con `=` ni opciones de escritura.
+- stdout y stderr se drenan concurrentemente a buffers acotados. El contenido que excede el límite configurable se descarta y produce un error sanitizado; stderr nunca se incorpora al resultado público.
+- Sólo se normalizan fecha de captura, fabricante, modelo, lente, exposición, apertura, ISO, distancia focal, ancho, alto y orientación. Todos son opcionales.
+- Los fallbacks explícitos son `DateTimeOriginal` → `CreateDate`, `LensModel` → `LensID` → `Lens`, `ImageWidth` → `ExifImageWidth` y `ImageHeight` → `ExifImageHeight`.
+- `SourceFile`, GPS, ubicación, propietario, copyright, comentarios, números de serie, rostros, MakerNotes y cualquier clave desconocida se descartan aunque ExifTool los devuelva.
+- Los estados públicos son `complete`, `partial`, `unavailable`, `error`, `skipped_ambiguous` y `skipped_no_photographic_file`; los errores usan códigos fijos sin rutas ni texto crudo de excepciones.
+- La ruta de `exiftool.exe` debe ser absoluta, regular, externa a sesión, workspace y repositorio, y no atravesar symlinks, junctions o reparse points detectables. Los resultados de versión sólo exponen disponibilidad, versión y estado.
+- Las pruebas normales usan un runner falso y archivos marcadores temporales. La integración con ExifTool real se limita a `-ver`, queda separada y omitida salvo activación explícita; no utiliza fotografías.
+- P0-05 no interpreta XMP/ACR, no genera proxies y no implementa P0-06.
+
 ### P0-06. Leer estrellas desde XMP
 
 Interpretar el rating XMP sin consultar `.lrcat`.

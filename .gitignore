@@ -99,6 +99,10 @@ models-private/
 releases/
 
 # Herramientas y sistema operativo
+exiftool*.exe
+ExifTool*.exe
+exiftool_files/
+ExifTool_files/
 .idea/
 .vscode/
 .DS_Store

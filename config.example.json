@@ -3,5 +3,10 @@
     "session_root": "X:/replace-with-external-session",
     "workspace_root": "X:/replace-with-private-workspace",
     "repository_root": "X:/replace-with-repository"
+  },
+  "exiftool": {
+    "executable": "X:/replace-with-local-tools/exiftool.exe",
+    "timeout_seconds": 10,
+    "max_output_bytes": 65536
   }
 }
