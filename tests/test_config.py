@@ -1,0 +1,104 @@
+from __future__ import annotations
+
+import json
+import os
+import tempfile
+import unittest
+from pathlib import Path
+
+from photo_session_workflow.config import ConfigurationError, load_config
+
+
+class ConfigTests(unittest.TestCase):
+    def _roots(self, parent: Path) -> tuple[Path, Path, Path]:
+        session = parent / "session with spaces"
+        workspace = parent / "private workspace"
+        repository = parent / "repository"
+        for path in (session, workspace, repository):
+            path.mkdir()
+        return session, workspace, repository
+
+    def _write_config(
+        self, parent: Path, session: object, workspace: object, repository: object
+    ) -> Path:
+        path = parent / "config.local.json"
+        path.write_text(
+            json.dumps(
+                {
+                    "paths": {
+                        "session_root": os.fspath(session) if isinstance(session, os.PathLike) else session,
+                        "workspace_root": os.fspath(workspace)
+                        if isinstance(workspace, os.PathLike)
+                        else workspace,
+                        "repository_root": os.fspath(repository)
+                        if isinstance(repository, os.PathLike)
+                        else repository,
+                    }
+                }
+            ),
+            encoding="utf-8",
+        )
+        return path
+
+    def test_valid_configuration_and_paths_with_spaces(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            parent = Path(temporary)
+            session, workspace, repository = self._roots(parent)
+            config = load_config(self._write_config(parent, session, workspace, repository))
+            self.assertEqual(config.session_root, session.resolve())
+            self.assertEqual(config.workspace_root, workspace.resolve())
+            self.assertEqual(config.repository_root, repository.resolve())
+
+    def test_empty_path_is_rejected(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            parent = Path(temporary)
+            session, workspace, repository = self._roots(parent)
+            with self.assertRaisesRegex(ConfigurationError, "must not be empty"):
+                load_config(self._write_config(parent, "", workspace, repository))
+
+    def test_relative_path_is_rejected(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            parent = Path(temporary)
+            _, workspace, repository = self._roots(parent)
+            with self.assertRaisesRegex(ConfigurationError, "must be absolute"):
+                load_config(self._write_config(parent, "relative/session", workspace, repository))
+
+    def test_missing_path_is_rejected(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            parent = Path(temporary)
+            _, workspace, repository = self._roots(parent)
+            missing = parent / "does not exist"
+            with self.assertRaisesRegex(ConfigurationError, "existing directory"):
+                load_config(self._write_config(parent, missing, workspace, repository))
+
+    def test_regular_file_cannot_be_a_root(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            parent = Path(temporary)
+            _, workspace, repository = self._roots(parent)
+            file_path = parent / "not-a-directory"
+            file_path.write_text("synthetic", encoding="utf-8")
+            with self.assertRaisesRegex(ConfigurationError, "must reference a directory"):
+                load_config(self._write_config(parent, file_path, workspace, repository))
+
+    def test_invalid_json_is_rejected(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            path = Path(temporary) / "config.local.json"
+            path.write_text("{invalid", encoding="utf-8")
+            with self.assertRaisesRegex(ConfigurationError, "valid UTF-8 JSON"):
+                load_config(path)
+
+    @unittest.skipUnless(os.name == "nt", "Windows-specific path behavior")
+    def test_windows_backslash_paths_are_accepted(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            parent = Path(temporary)
+            session, workspace, repository = self._roots(parent)
+            config = load_config(
+                self._write_config(
+                    parent, str(session), str(workspace), str(repository)
+                )
+            )
+            self.assertEqual(config.session_root, session.resolve())
+
+
+if __name__ == "__main__":
+    unittest.main()

@@ -1,0 +1,7 @@
+{
+  "paths": {
+    "session_root": "X:/replace-with-external-session",
+    "workspace_root": "X:/replace-with-private-workspace",
+    "repository_root": "X:/replace-with-repository"
+  }
+}

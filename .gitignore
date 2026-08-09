@@ -1,6 +1,7 @@
 # Configuración local y secretos
 config.yaml
 config.local.yaml
+config.local.json
 .env
 .env.*
 !.env.example

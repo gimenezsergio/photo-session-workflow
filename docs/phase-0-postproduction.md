@@ -108,6 +108,17 @@ Documentar entradas, workspace y reglas de separación de rutas.
 - La validación rechaza un workspace dentro de la sesión o del repositorio.
 - Ninguna ruta real queda codificada ni versionada.
 
+**Implementación inicial**
+
+- `config.local.json`, ignorado por Git, define sesión, workspace y repositorio mediante rutas absolutas.
+- Las raíces deben existir y ser disjuntas; se rechazan igualdad, anidamiento en ambas direcciones y enlaces o reparse points detectables.
+- `SessionReader` sólo expone lectura de archivos existentes; `WorkspaceWriter` es una capacidad separada que sólo escribe dentro del workspace.
+- Esta separación reduce el riesgo de que una operación futura de lectura reutilice accidentalmente una interfaz de escritura sobre la sesión.
+- `WorkspaceWriter` valida contenido, padre y destino final antes de escribir. Rechaza destinos existentes que sean enlaces, reparse points, junctions o tipos distintos de archivo regular.
+- Con `overwrite=True`, exige un archivo regular existente, escribe y sincroniza un temporal en el mismo directorio, lo cierra, revalida las fronteras y publica mediante `os.replace`. El archivo anterior se conserva si falla la escritura previa al reemplazo.
+- Con `overwrite=False`, usa creación exclusiva (`xb`) y nunca reemplaza una entrada existente. Ante una excepción controlada intenta eliminar el archivo incompleto, pero la publicación no es atómica: una caída abrupta del proceso o del sistema podría dejar un archivo parcial visible.
+- Las revalidaciones reducen errores accidentales y condiciones TOCTOU internas, pero no constituyen un sandbox contra otro proceso local hostil que cambie directorios o entradas simultáneamente.
+
 ### P0-02. Definir fixtures sintéticos
 
 Preparar casos mínimos que representen NEF D7000, JPG, XMP con y sin estrellas y ACR auxiliar, sin usar fotografías privadas.
@@ -117,6 +128,13 @@ Preparar casos mínimos que representen NEF D7000, JPG, XMP con y sin estrellas 
 - Todos los fixtures son sintéticos o están expresamente habilitados para pruebas.
 - Hay casos con archivo faltante, asociación ambigua, XMP inválido y XMP sin rating.
 - Ningún fixture contiene GPS, identidad de modelos, credenciales ni rutas personales.
+
+**Implementación inicial**
+
+- Los fixtures se generan exclusivamente dentro de `TemporaryDirectory` durante las pruebas y desaparecen al finalizar.
+- Cubren NEF D7000 simulado, JPG simulado, XMP con/sin rating, rating inválido, XML inválido, ACR auxiliar, faltantes, ambigüedad y diferencias de mayúsculas/minúsculas.
+- Los archivos con extensión `.NEF` y `.jpg` contienen marcadores textuales explícitos y no son decodificables. Estas pruebas no validan lectura RAW, render de Nikon D7000 ni decodificación JPEG.
+- La suite se ejecuta con `python -m unittest discover -s tests -v` sin dependencias externas.
 
 ### P0-03. Inventariar archivos
 
