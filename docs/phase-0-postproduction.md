@@ -223,6 +223,18 @@ Interpretar el rating XMP sin consultar `.lrcat`.
 - Se muestra una advertencia de posible desactualización respecto del catálogo.
 - Ningún `.lrcat` se abre durante la operación.
 
+**Implementación inicial**
+
+- `XmpRatingReader` usa únicamente `xml.etree.ElementTree` y lee exclusivamente `{http://ns.adobe.com/xap/1.0/}Rating` como atributo de `rdf:Description` o como elemento.
+- `SessionReader` valida el sidecar relativo no ambiguo, lo abre en modo binario de sólo lectura y permite leer como máximo `xmp.max_bytes` más un byte de control.
+- Se rechazan antes del parseo los documentos que superan el límite o contienen `DOCTYPE`/`ENTITY`, incluidos marcadores detectables en UTF-16/UTF-32. ElementTree no recibe resolutores externos.
+- Los valores `1..5` son `rated`, `0` es `unrated`, `-1` es `rejected`, la ausencia es `missing` y los valores no permitidos o contradictorios son `invalid`.
+- Múltiples valores iguales se aceptan con `duplicate_rating_values`; valores diferentes producen `rating_values_conflict` y no se elige ninguno.
+- Activos ambiguos y sidecars múltiples se omiten mediante `skipped_ambiguous_asset` o `skipped_ambiguous_sidecar`. Un activo sin componentes NEF/JPG produce `skipped_no_photographic_file` y su XMP no se abre. XML malformado, prohibido, grande o inaccesible produce `error` con un código sanitizado.
+- El resultado sólo conserva identificador, rating normalizado, estado, ruta XMP relativa segura, advertencias y código de error. No conserva XML, rutas absolutas ni texto crudo de excepciones.
+- `xmp_last_saved_state_only` recuerda que el rating representa el último estado guardado desde Lightroom mediante `Ctrl+S`, no una comprobación del catálogo.
+- No se interpretan ajustes, máscaras, ACR ni otros campos XMP y no se consulta `.lrcat`.
+
 ### P0-07. Filtrar por estrellas
 
 Permitir reducir el inventario antes de generar o analizar derivados.
@@ -233,6 +245,14 @@ Permitir reducir el inventario antes de generar o analizar derivados.
 - El conteo antes y después del filtro es visible.
 - El filtro no modifica XMP ni la selección de Lightroom.
 
+**Implementación inicial**
+
+- `RatingFilter` inmutable admite un mínimo de `1..5` o, de forma mutuamente excluyente, un conjunto exacto no vacío de ratings `1..5`.
+- `filter_assets_by_rating()` es pura y mantiene el orden de P0-04. Selecciona sólo resultados `rated` que cumplen el filtro, pertenecen a un activo conocido no ambiguo y conservan al menos un componente NEF/JPG.
+- `unrated`, `rejected`, `missing`, `invalid`, `error` y estados omitidos se excluyen por defecto con un motivo explícito; un rating bajo o fuera del conjunto también conserva su motivo.
+- El resultado informa total evaluado, seleccionados y excluidos sin cambiar archivos ni valores de rating.
+- Un error de lectura se registra por activo y no impide procesar los demás.
+
 ### P0-08. Resolver la fuente de preview
 
 Elegir entre JPG de Lightroom y aproximación desde NEF.
@@ -242,6 +262,20 @@ Elegir entre JPG de Lightroom y aproximación desde NEF.
 - Cada preview queda marcado como `lightroom_export` o `nef_approximation`.
 - Si existen ambas fuentes, la elección es visible y revisable.
 - Una aproximación NEF incluye una advertencia de que puede diferir de Lightroom.
+
+**Recorte implementado en este bloque**
+
+- Para cada activo seleccionado sólo se observa el único JPG/JPEG ya relacionado exactamente por P0-04 y se registra como `jpg_candidate`.
+- `jpg_candidate_unverified` aclara que la coincidencia de nombre no demuestra que el archivo haya sido exportado por Lightroom. La confirmación de procedencia queda futura.
+- Si no existe JPG se registra `jpg_candidate_missing`; si hubiera múltiples candidatos no se elige ninguno y se registra `jpg_candidate_ambiguous`.
+- Sufijos como `-Edit` o `_v2` no se infieren ni se relacionan. No se decodifica NEF/JPG ni se genera preview o proxy.
+
+**Manifiesto preliminar en memoria**
+
+- El flujo implementado es `InventoryResult → RelationResult → ratings XMP → filtro → candidato JPG → manifiesto preliminar`.
+- El manifiesto inmutable incluye versión de esquema, filtro, conteos y, por seleccionado, identificador, rating, nombre, ruta XMP relativa, candidato JPG relativo y advertencias.
+- La serialización JSON usa claves ordenadas, separadores estables y no incorpora timestamps. No contiene rutas absolutas, GPS, EXIF completo, contenido XMP, NEF ni imágenes codificadas.
+- El manifiesto no se guarda, copia, empaqueta ni transmite. Flask, SQLite, proxies, hojas de contacto y ZIP permanecen fuera del bloque.
 
 ### P0-09. Generar proxies
 

@@ -8,5 +8,8 @@
     "executable": "X:/replace-with-local-tools/exiftool.exe",
     "timeout_seconds": 10,
     "max_output_bytes": 65536
+  },
+  "xmp": {
+    "max_bytes": 262144
   }
 }

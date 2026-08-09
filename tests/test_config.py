@@ -125,6 +125,20 @@ class ConfigTests(unittest.TestCase):
             with self.assertRaisesRegex(ConfigurationError, "unsupported keys"):
                 load_config(config_path)
 
+    def test_xmp_size_limit_is_loaded_and_validated(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            parent = Path(temporary)
+            session, workspace, repository = self._roots(parent)
+            config_path = self._write_config(parent, session, workspace, repository)
+            payload = json.loads(config_path.read_text(encoding="utf-8"))
+            payload["xmp"] = {"max_bytes": 4096}
+            config_path.write_text(json.dumps(payload), encoding="utf-8")
+            self.assertEqual(load_config(config_path).xmp_max_bytes, 4096)
+            payload["xmp"] = {"max_bytes": 1}
+            config_path.write_text(json.dumps(payload), encoding="utf-8")
+            with self.assertRaisesRegex(ConfigurationError, "between 64"):
+                load_config(config_path)
+
     @unittest.skipUnless(os.name == "nt", "Windows-specific path behavior")
     def test_windows_backslash_paths_are_accepted(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
