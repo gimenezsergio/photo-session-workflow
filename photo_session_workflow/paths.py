@@ -12,6 +12,7 @@ from typing import TYPE_CHECKING, BinaryIO
 if TYPE_CHECKING:
     from .exif import ExifReadResult, ExifSourceSelection, ExifToolAdapter
     from .inventory import InventoryResult
+    from .lightroom_exports import LightroomExportInventory
     from .xmp_rating import RatingReadResult, RatingSourceSelection, XmpRatingReader
 
 
@@ -204,6 +205,71 @@ class SessionReader:
             target_photo_count=target_photo_count,
         )
 
+    def _validated_export_directory(
+        self, relative_directory: str | os.PathLike[str]
+    ) -> Path:
+        relative = Path(relative_directory)
+        if (
+            not os.fspath(relative_directory)
+            or relative.is_absolute()
+            or bool(relative.drive)
+            or relative == Path(".")
+            or ".." in relative.parts
+        ):
+            raise PathBoundaryError(
+                "lightroom export directory must be a non-empty relative subdirectory"
+            )
+        candidate = self._root / relative
+        reject_links_or_reparse_points(candidate, label="lightroom export directory")
+        try:
+            resolved = candidate.resolve(strict=True)
+        except (OSError, RuntimeError) as exc:
+            raise PathBoundaryError(
+                "lightroom export directory must reference an existing directory"
+            ) from exc
+        if not _contains(self._root, resolved) or resolved == self._root:
+            raise PathBoundaryError("lightroom export directory escapes session_root")
+        if not resolved.is_dir():
+            raise PathBoundaryError("lightroom export directory must reference a directory")
+        return resolved
+
+    def validate_lightroom_export_directory(
+        self, relative_directory: str | os.PathLike[str]
+    ) -> None:
+        """Validate a declared export directory without exposing its absolute path."""
+
+        self._validated_export_directory(relative_directory)
+
+    def inventory_lightroom_exports(
+        self, relative_directory: str | os.PathLike[str]
+    ) -> "LightroomExportInventory":
+        """Inventory only direct JPG/JPEG children of the declared export directory."""
+
+        from .lightroom_exports import _inventory_lightroom_export_directory
+
+        directory = self._validated_export_directory(relative_directory)
+        return _inventory_lightroom_export_directory(directory, Path(relative_directory))
+
+    def read_lightroom_export(
+        self,
+        relative_directory: str | os.PathLike[str],
+        relative_path: str | os.PathLike[str],
+        *,
+        max_bytes: int,
+    ) -> bytes:
+        """Read one revalidated export with an explicit upper bound."""
+
+        if not isinstance(max_bytes, int) or isinstance(max_bytes, bool) or max_bytes < 1:
+            raise ValueError("max_bytes must be a positive integer")
+        export_root = self._validated_export_directory(relative_directory)
+        source = self._existing_file(relative_path)
+        if source.parent != export_root:
+            raise PathBoundaryError("export file must be a direct child of export directory")
+        if source.suffix.casefold() not in {".jpg", ".jpeg"}:
+            raise PathBoundaryError("export file must be JPG or JPEG")
+        with source.open("rb") as stream:
+            return stream.read(max_bytes + 1)
+
     def _read_exif_with(
         self,
         adapter: "ExifToolAdapter",
@@ -268,6 +334,68 @@ class WorkspaceWriter:
                 payload,
             )
         return self._create_exclusively(resolved_parent, resolved_destination, payload)
+
+    def publish_bytes_atomically(
+        self,
+        relative_path: str | os.PathLike[str],
+        content: bytes | bytearray | memoryview,
+    ) -> Path:
+        """Publish a new file atomically without replacing an existing destination."""
+
+        payload = _binary_content(content)
+        relative = Path(relative_path)
+        if not os.fspath(relative_path) or relative.is_absolute():
+            raise PathBoundaryError("workspace path must be a non-empty relative path")
+        destination = self._root / relative
+        parent = self._validated_parent(destination.parent)
+        destination = self._validated_destination(
+            parent / destination.name, require_regular=False
+        )
+        if os.path.lexists(destination):
+            raise FileExistsError("workspace destination already exists")
+
+        descriptor = -1
+        temporary_path: Path | None = None
+        try:
+            descriptor, temporary_name = tempfile.mkstemp(
+                dir=parent,
+                prefix=f".{destination.name}.",
+                suffix=".tmp",
+            )
+            temporary_path = Path(temporary_name)
+            with os.fdopen(descriptor, "wb") as stream:
+                descriptor = -1
+                _write_stream(stream, payload)
+
+            final_parent = self._validated_parent(destination.parent)
+            if final_parent != parent:
+                raise PathBoundaryError("workspace parent changed before publication")
+            final_destination = self._validated_destination(
+                final_parent / destination.name, require_regular=False
+            )
+            if os.path.lexists(final_destination):
+                raise FileExistsError("workspace destination already exists")
+            os.link(temporary_path, final_destination, follow_symlinks=False)
+            try:
+                temporary_path.unlink()
+            except OSError:
+                try:
+                    final_destination.unlink()
+                finally:
+                    raise
+            temporary_path = None
+            return final_destination
+        finally:
+            if descriptor != -1:
+                try:
+                    os.close(descriptor)
+                except OSError:
+                    pass
+            if temporary_path is not None:
+                try:
+                    temporary_path.unlink()
+                except FileNotFoundError:
+                    pass
 
     def _validated_parent(self, parent: Path) -> Path:
         reject_links_or_reparse_points(parent, label="workspace path")

@@ -8,7 +8,8 @@ from dataclasses import dataclass
 from pathlib import Path
 
 from .exif import ExifConfigurationError, ExifToolSettings
-from .paths import PathBoundaryError, RootBoundaries
+from .paths import PathBoundaryError, RootBoundaries, SessionReader
+from .review_package import ReviewPackageLimits
 
 
 class ConfigurationError(ValueError):
@@ -22,6 +23,10 @@ class Phase0Config:
     boundaries: RootBoundaries
     exiftool: ExifToolSettings | None = None
     xmp_max_bytes: int = 262_144
+    lightroom_export_relative_directory: str | None = None
+    review_package_limits: ReviewPackageLimits = ReviewPackageLimits(
+        25_000_000, 250_000_000
+    )
 
     @property
     def session_root(self) -> Path:
@@ -102,4 +107,37 @@ def load_config(config_path: str | os.PathLike[str]) -> Phase0Config:
         or not 64 <= xmp_max_bytes <= 10_000_000
     ):
         raise ConfigurationError("xmp max_bytes must be between 64 and 10000000")
-    return Phase0Config(boundaries, exiftool, xmp_max_bytes)
+    export_relative_directory = payload.get("lightroom_export_relative_directory")
+    if export_relative_directory is not None:
+        if not isinstance(export_relative_directory, str):
+            raise ConfigurationError(
+                "lightroom_export_relative_directory must be a relative path"
+            )
+        try:
+            SessionReader(boundaries).validate_lightroom_export_directory(
+                export_relative_directory
+            )
+        except (PathBoundaryError, TypeError) as exc:
+            raise ConfigurationError(str(exc)) from exc
+
+    package_payload = payload.get("review_package", {})
+    if not isinstance(package_payload, dict):
+        raise ConfigurationError("review_package configuration must be an object")
+    if set(package_payload) - {"max_jpg_bytes", "max_package_bytes"}:
+        raise ConfigurationError("review_package configuration contains unsupported keys")
+    try:
+        package_limits = ReviewPackageLimits.create(
+            max_jpg_bytes=package_payload.get("max_jpg_bytes", 25_000_000),
+            max_package_bytes=package_payload.get(
+                "max_package_bytes", 250_000_000
+            ),
+        )
+    except (TypeError, ValueError) as exc:
+        raise ConfigurationError(str(exc)) from exc
+    return Phase0Config(
+        boundaries,
+        exiftool,
+        xmp_max_bytes,
+        export_relative_directory,
+        package_limits,
+    )

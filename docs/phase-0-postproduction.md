@@ -275,7 +275,16 @@ Elegir entre JPG de Lightroom y aproximación desde NEF.
 - El flujo implementado es `InventoryResult → RelationResult → ratings XMP → filtro → candidato JPG → manifiesto preliminar`.
 - El manifiesto inmutable incluye versión de esquema, filtro, conteos y, por seleccionado, identificador, rating, nombre, ruta XMP relativa, candidato JPG relativo y advertencias.
 - La serialización JSON usa claves ordenadas, separadores estables y no incorpora timestamps. No contiene rutas absolutas, GPS, EXIF completo, contenido XMP, NEF ni imágenes codificadas.
-- El manifiesto no se guarda, copia, empaqueta ni transmite. Flask, SQLite, proxies, hojas de contacto y ZIP permanecen fuera del bloque.
+- En el recorte preliminar original el manifiesto no se guarda, copia, empaqueta ni transmite. Flask, SQLite, proxies y hojas de contacto permanecen fuera del alcance implementado.
+
+**Recorte implementado para exportaciones Lightroom declaradas**
+
+- `lightroom_export_relative_directory` declara una subcarpeta relativa existente dentro de la sesión. Esa declaración permite tratar sus JPG/JPEG directos como `lightroom_export`, pero no verifica su historial real en Lightroom.
+- La ruta no puede ser vacía, absoluta, `.` ni contener `..`, y se rechazan symlinks, junctions o reparse points detectables. El directorio y cada JPG se revalidan antes de leer.
+- El inventario principal permanece no recursivo y separado del inventario de exportaciones. Este último observa únicamente JPG/JPEG directos, no recorre otras subcarpetas y no interpreta XMP.
+- Cada activo ya seleccionado se resuelve por nombre base exacto mediante `casefold()`. Los estados son `resolved`, `missing`, `ambiguous` e `invalid`; no se infieren sufijos como `-Edit` o `_v2`.
+- Los JPG de cámara continúan siendo candidatos no verificados del inventario principal y nunca se usan como sustituto dentro de este paquete.
+- El manifiesto 0.2 registra `lightroom_export`, ruta relativa y advertencias de procedencia declarada y política de metadatos. No contiene rutas absolutas, XML, GPS, EXIF completo ni binarios.
 
 ### P0-09. Generar proxies
 
@@ -321,6 +330,17 @@ Preparar localmente el material mínimo necesario para revisión asistida.
 - Cada entrada registra procedencia del preview, rating XMP, datos técnicos mínimos e identificador para volver a Lightroom.
 - La generación no transmite archivos ni requiere credenciales externas.
 - Un error en una fotografía se informa sin incorporar silenciosamente un paquete incompleto.
+
+**Implementación limitada sin hoja de contacto**
+
+- El ZIP local autorizado contiene exactamente `manifest.json` y `images/<nombre-exportado.jpg|jpeg>` para todos los activos seleccionados que tengan una única exportación válida.
+- Si falta una exportación, hay duplicados o una entrada es inválida, la generación se detiene antes de publicar y conserva los identificadores y estados fallidos.
+- Cada JPG tiene un límite configurable y se lee como máximo hasta ese límite más un byte; también se valida un límite total antes y después de construir el ZIP.
+- El manifiesto y el orden ZIP son deterministas, con timestamps internos fijos. Los nombres internos se validan contra rutas absolutas, componentes padre, separadores y colisiones.
+- La publicación usa un temporal en el mismo directorio del workspace, sincronización completa y enlace exclusivo atómico. Nunca sobrescribe un paquete existente y limpia el temporal ante errores.
+- El resultado local registra tamaño y SHA-256 del ZIP. No se transmite ni sube automáticamente.
+- Los JPG se incorporan exactamente como fueron exportados. La aplicación no afirma eliminar EXIF; su contenido y política de metadatos dependen de la configuración de exportación usada en Lightroom.
+- La hoja de contacto, proxies desde NEF, interfaz Flask y persistencia SQLite siguen fuera de este recorte.
 
 ### P0-13. Permitir revisar y descargar el paquete
 

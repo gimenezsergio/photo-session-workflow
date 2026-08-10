@@ -139,6 +139,52 @@ class ConfigTests(unittest.TestCase):
             with self.assertRaisesRegex(ConfigurationError, "between 64"):
                 load_config(config_path)
 
+    def test_lightroom_export_directory_and_package_limits_are_loaded(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            parent = Path(temporary)
+            session, workspace, repository = self._roots(parent)
+            (session / "export-app").mkdir()
+            config_path = self._write_config(parent, session, workspace, repository)
+            payload = json.loads(config_path.read_text(encoding="utf-8"))
+            payload["lightroom_export_relative_directory"] = "export-app"
+            payload["review_package"] = {
+                "max_jpg_bytes": 1234,
+                "max_package_bytes": 5678,
+            }
+            config_path.write_text(json.dumps(payload), encoding="utf-8")
+            config = load_config(config_path)
+            self.assertEqual(config.lightroom_export_relative_directory, "export-app")
+            self.assertEqual(config.review_package_limits.max_jpg_bytes, 1234)
+            self.assertEqual(config.review_package_limits.max_package_bytes, 5678)
+
+    def test_invalid_lightroom_export_configuration_is_rejected(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            parent = Path(temporary)
+            session, workspace, repository = self._roots(parent)
+            (session / "export-app").mkdir()
+            for invalid in ("", ".", "../export-app", os.fspath(session / "export-app"), "missing"):
+                with self.subTest(invalid=invalid):
+                    config_path = self._write_config(parent, session, workspace, repository)
+                    payload = json.loads(config_path.read_text(encoding="utf-8"))
+                    payload["lightroom_export_relative_directory"] = invalid
+                    config_path.write_text(json.dumps(payload), encoding="utf-8")
+                    with self.assertRaises(ConfigurationError):
+                        load_config(config_path)
+
+    def test_invalid_review_package_limits_are_rejected(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            parent = Path(temporary)
+            session, workspace, repository = self._roots(parent)
+            config_path = self._write_config(parent, session, workspace, repository)
+            payload = json.loads(config_path.read_text(encoding="utf-8"))
+            payload["review_package"] = {
+                "max_jpg_bytes": 200,
+                "max_package_bytes": 100,
+            }
+            config_path.write_text(json.dumps(payload), encoding="utf-8")
+            with self.assertRaisesRegex(ConfigurationError, "must not be smaller"):
+                load_config(config_path)
+
     @unittest.skipUnless(os.name == "nt", "Windows-specific path behavior")
     def test_windows_backslash_paths_are_accepted(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
