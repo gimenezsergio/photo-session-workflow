@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import hashlib
 import io
+import struct
 from dataclasses import dataclass
 from pathlib import PurePosixPath
 
@@ -91,7 +92,17 @@ def _safe_output_name(asset_id: str, payload: bytes) -> str:
 
 def _srgb_profile() -> tuple[ImageCms.ImageCmsProfile, bytes]:
     profile = ImageCms.ImageCmsProfile(ImageCms.createProfile("sRGB"))
-    return profile, profile.tobytes()
+    normalized = bytearray(profile.tobytes())
+    if len(normalized) < 100:
+        raise ProxyConfigurationError("generated sRGB profile is invalid")
+    normalized[24:36] = struct.pack(">6H", 1980, 1, 1, 0, 0, 0)
+    normalized[84:100] = b"\x00" * 16
+    stable_bytes = bytes(normalized)
+    try:
+        ImageCms.ImageCmsProfile(io.BytesIO(stable_bytes))
+    except (ImageCms.PyCMSError, OSError, TypeError, ValueError) as exc:
+        raise ProxyConfigurationError("generated sRGB profile is invalid") from exc
+    return profile, stable_bytes
 
 
 def _render_proxy(

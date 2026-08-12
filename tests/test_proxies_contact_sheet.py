@@ -3,7 +3,10 @@ from __future__ import annotations
 import hashlib
 import io
 import os
+import subprocess
+import sys
 import tempfile
+import time
 import unittest
 from dataclasses import FrozenInstanceError
 from pathlib import Path
@@ -179,6 +182,23 @@ class ProxyAndContactSheetTests(unittest.TestCase):
         entry = self._generate(("no-profile.jpg",)).entries[0]
         self.assertEqual(entry.status, "generated")
         self.assertIn("source_profile_missing_assumed_srgb", entry.warnings)
+
+    def test_embedded_srgb_profile_bytes_are_stable_across_processes(self) -> None:
+        command = (
+            "import hashlib; "
+            "from photo_session_workflow.proxies import _srgb_profile; "
+            "print(hashlib.sha256(_srgb_profile()[1]).hexdigest())"
+        )
+        first = subprocess.check_output(
+            [sys.executable, "-c", command],
+            text=True,
+        ).strip()
+        time.sleep(1.1)
+        second = subprocess.check_output(
+            [sys.executable, "-c", command],
+            text=True,
+        ).strip()
+        self.assertEqual(first, second)
 
     def test_invalid_embedded_profile_is_rejected_without_raw_error(self) -> None:
         image = Image.new("RGB", (20, 20), (1, 2, 3))

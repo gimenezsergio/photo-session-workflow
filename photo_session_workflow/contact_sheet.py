@@ -8,10 +8,10 @@ import math
 from dataclasses import dataclass
 from pathlib import PurePosixPath
 
-from PIL import Image, ImageCms, ImageDraw, ImageFont, UnidentifiedImageError
+from PIL import Image, ImageDraw, ImageFont, UnidentifiedImageError
 
 from .paths import PathBoundaryError, WorkspaceWriter
-from .proxies import ProxyBatchResult, ProxyEntry
+from .proxies import ProxyBatchResult, ProxyEntry, _srgb_profile
 
 
 class ContactSheetError(ValueError):
@@ -196,7 +196,7 @@ def generate_contact_sheet(
             spacing=2,
         )
 
-    srgb = ImageCms.ImageCmsProfile(ImageCms.createProfile("sRGB")).tobytes()
+    _, srgb = _srgb_profile()
     output = io.BytesIO()
     canvas.save(
         output,
