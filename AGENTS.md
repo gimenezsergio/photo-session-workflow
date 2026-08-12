@@ -6,7 +6,7 @@ Estas instrucciones aplican a todo el proyecto.
 
 ## Estado actual
 
-La implementación está autorizada exclusivamente para P0-01 a P0-12, con recortes explícitos de P0-08 a P0-10 basados en exportaciones Lightroom declaradas:
+La implementación está autorizada exclusivamente para P0-01 a P0-13, con recortes explícitos de P0-08 a P0-10 basados en exportaciones Lightroom declaradas:
 
 - contrato de sesión, configuración y fronteras de rutas;
 - fixtures sintéticos generados durante las pruebas.
@@ -18,6 +18,7 @@ La implementación está autorizada exclusivamente para P0-01 a P0-12, con recor
 - proxies privados re-encodificados desde exportaciones Lightroom resueltas y una hoja de contacto construida exclusivamente desde esos proxies.
 - borrador y confirmación explícita de una selección reducida en memoria antes de generar cualquier paquete.
 - paquete de revisión 0.3 generado exclusivamente desde proxies privados de la selección confirmada, con una hoja de contacto específica para ese subconjunto.
+- inspección local sanitizada del paquete 0.3 y entrega de sus bytes en memoria sólo después de una acción de descarga explícita.
 
 Hasta una nueva autorización:
 
@@ -27,7 +28,7 @@ Hasta una nueva autorización:
 - no instalar dependencias sin justificación previa;
 - no procesar fotografías reales;
 - no abrir, copiar ni modificar catálogos Lightroom.
-- no implementar revisión/descarga ni registro de recomendaciones de P0-13 o P0-14.
+- no implementar registro de recomendaciones de P0-14.
 
 ## Alcance activo de la Fase 0
 
@@ -89,8 +90,10 @@ Quedan fuera de la Fase 0 la preproducción, las propuestas creativas, las prese
 - El paquete 0.3 contiene únicamente `manifest.json`, `contact-sheet.jpg` e `images/` con un proxy por activo confirmado. El manifiesto minimizado no incluye rutas o hashes fuente, GPS, XML, EXIF completo, credenciales ni timestamps.
 - Cada proxy y la hoja de contacto deben verificarse por SHA-256 y límites configurables antes de empaquetarse. El ZIP determinista se publica exclusivamente sin reemplazar un destino existente; los derivados intermedios no se eliminan automáticamente.
 - El paquete permanece local y contiene imágenes identificables. Compartirlo exige una acción manual y explícita del usuario; no existe transmisión automática, API ni control de ChatGPT.
+- P0-13 debe inspeccionar exclusivamente el ZIP 0.3 dentro del workspace, sin extraer miembros ni leer fuentes. El resumen revisable puede exponer conteos, identificadores, ratings, procedencia, dimensiones, nombres internos y advertencias, pero no bytes de imagen ni rutas absolutas.
+- La entrega para descarga debe exigir exactamente `explicit_download=True`, volver a validar tamaño y SHA-256 y devolver el ZIP sólo en memoria. No escribir en una carpeta externa, abrir navegador, iniciar una carga ni inferir consentimiento.
 - Pillow es la única dependencia de ejecución incorporada para este recorte; no utilizar ejecutables de imagen, red ni servicios externos.
-- No generar aproximaciones NEF, ampliar P0-13, iniciar Flask/SQLite ni agregar persistencia hasta nueva autorización.
+- No generar aproximaciones NEF, ampliar P0-14, iniciar Flask/SQLite ni agregar persistencia hasta nueva autorización.
 
 ## Criterios para cambios futuros
 

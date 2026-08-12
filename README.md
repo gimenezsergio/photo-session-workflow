@@ -4,7 +4,7 @@ Proyecto local para diseñar y, más adelante, implementar un flujo de producci�
 
 ## Estado
 
-P0-01 a P0-12 están implementados, con recortes de P0-08 a P0-10 basados exclusivamente en exportaciones Lightroom declaradas: resolución exacta, proxies privados sRGB, hoja de contacto, confirmación explícita en memoria y paquete local 0.3 limitado a la selección confirmada. Todavía no hay aplicación Flask, SQLite, aproximaciones desde NEF ni integración automática con Lightroom o ChatGPT.
+P0-01 a P0-13 están implementados, con recortes de P0-08 a P0-10 basados exclusivamente en exportaciones Lightroom declaradas: resolución exacta, proxies privados sRGB, hoja de contacto, confirmación explícita, paquete local 0.3 y revisión/entrega manual en memoria. Todavía no hay aplicación Flask, SQLite, aproximaciones desde NEF ni integración automática con Lightroom o ChatGPT.
 
 ## Objetivo
 
@@ -75,7 +75,7 @@ Instalar el proyecto en un entorno virtual antes de ejecutar este bloque:
 py -3 -m pip install -e .
 ```
 
-## Pruebas de P0-01 a P0-12
+## Pruebas de P0-01 a P0-13
 
 Además de Pillow, declarada en `pyproject.toml`, la suite no requiere ejecutables ni servicios externos. En Windows, con Python 3.11 o posterior:
 
@@ -108,6 +108,7 @@ photo-session-workflow/
 │   ├── proxies.py       # Proxies sRGB desde exportaciones Lightroom declaradas
 │   ├── selection_confirmation.py # Confirmación reducida explícita en memoria
 │   ├── confirmed_review_package.py # Paquete 0.3 de la selección confirmada
+│   ├── review_handoff.py # Revisión sanitizada y descarga explícita en memoria
 │   └── relations.py     # Relaciones lógicas entre entradas admitidas
 ├── templates/           # Reservado para plantillas HTML futuras
 ├── tests/               # unittest y generador de fixtures temporales
@@ -119,4 +120,4 @@ photo-session-workflow/
 
 ## Próxima revisión
 
-La implementación debe detenerse al completar P0-12. La revisión/descarga del paquete en P0-13, las aproximaciones desde NEF y las tareas posteriores requieren una autorización nueva. Las preguntas restantes están documentadas como decisiones futuras y no bloquean estas bases.
+La implementación debe detenerse al completar P0-13. El registro manual de recomendaciones de P0-14, una interfaz Flask, las aproximaciones desde NEF y las tareas posteriores requieren una autorización nueva. Las preguntas restantes están documentadas como decisiones futuras y no bloquean estas bases.
