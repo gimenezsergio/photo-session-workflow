@@ -10,6 +10,7 @@ from pathlib import Path
 from .exif import ExifConfigurationError, ExifToolSettings
 from .contact_sheet import ContactSheetError, ContactSheetSettings
 from .confirmed_review_package import ConfirmedReviewPackageLimits
+from .manual_recommendations import ManualRecommendationSettings
 from .paths import PathBoundaryError, RootBoundaries, SessionReader
 from .proxies import ProxyConfigurationError, ProxySettings
 from .review_package import ReviewPackageLimits
@@ -34,6 +35,9 @@ class Phase0Config:
     contact_sheet_settings: ContactSheetSettings = ContactSheetSettings()
     confirmed_review_package_limits: ConfirmedReviewPackageLimits = (
         ConfirmedReviewPackageLimits()
+    )
+    manual_recommendation_settings: ManualRecommendationSettings = (
+        ManualRecommendationSettings()
     )
 
     @property
@@ -201,6 +205,20 @@ def load_config(config_path: str | os.PathLike[str]) -> Phase0Config:
         )
     except (TypeError, ValueError) as exc:
         raise ConfigurationError(str(exc)) from exc
+
+    recommendation_payload = payload.get("manual_recommendations", {})
+    if not isinstance(recommendation_payload, dict):
+        raise ConfigurationError("manual_recommendations configuration must be an object")
+    if set(recommendation_payload) - {"database_relative_path"}:
+        raise ConfigurationError(
+            "manual_recommendations configuration contains unsupported keys"
+        )
+    try:
+        recommendation_settings = ManualRecommendationSettings.create(
+            **recommendation_payload
+        )
+    except (TypeError, ValueError) as exc:
+        raise ConfigurationError(str(exc)) from exc
     return Phase0Config(
         boundaries=boundaries,
         exiftool=exiftool,
@@ -210,4 +228,5 @@ def load_config(config_path: str | os.PathLike[str]) -> Phase0Config:
         proxy_settings=proxy_settings,
         contact_sheet_settings=contact_settings,
         confirmed_review_package_limits=confirmed_package_limits,
+        manual_recommendation_settings=recommendation_settings,
     )

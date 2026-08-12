@@ -171,6 +171,30 @@ class ConfigTests(unittest.TestCase):
                     with self.assertRaises(ConfigurationError):
                         load_config(config_path)
 
+    def test_manual_recommendation_database_path_is_loaded_and_validated(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            parent = Path(temporary)
+            session, workspace, repository = self._roots(parent)
+            config_path = self._write_config(parent, session, workspace, repository)
+            payload = json.loads(config_path.read_text(encoding="utf-8"))
+            payload["manual_recommendations"] = {
+                "database_relative_path": "private state/manual.db"
+            }
+            config_path.write_text(json.dumps(payload), encoding="utf-8")
+            config = load_config(config_path)
+            self.assertEqual(
+                config.manual_recommendation_settings.database_relative_path,
+                "private state/manual.db",
+            )
+            for invalid in ("../manual.db", os.fspath(workspace / "manual.db"), "x.txt"):
+                with self.subTest(invalid=invalid):
+                    payload["manual_recommendations"] = {
+                        "database_relative_path": invalid
+                    }
+                    config_path.write_text(json.dumps(payload), encoding="utf-8")
+                    with self.assertRaises(ConfigurationError):
+                        load_config(config_path)
+
     def test_invalid_review_package_limits_are_rejected(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
             parent = Path(temporary)

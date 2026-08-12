@@ -37,5 +37,8 @@
     "max_proxy_bytes": 10000000,
     "max_contact_sheet_bytes": 50000000,
     "max_package_bytes": 250000000
+  },
+  "manual_recommendations": {
+    "database_relative_path": "state/recommendations.sqlite3"
   }
 }
