@@ -62,6 +62,7 @@ class ProxyEntry:
     rating: int
     preview_source: str
     source_relative_path: str
+    source_sha256: str | None
     status: str
     proxy_relative_path: str | None
     width_px: int | None
@@ -194,6 +195,7 @@ def _error_entry(
         item.rating,
         "lightroom_export",
         source,
+        None,
         "error",
         None,
         None,
@@ -245,6 +247,7 @@ def generate_proxies(
         if len(source) > settings.max_source_bytes:
             entries.append(_error_entry(item, "source_too_large"))
             continue
+        source_digest = hashlib.sha256(source).hexdigest()
         try:
             rendered, width, height, render_warnings = _render_proxy(source, settings)
         except ValueError as exc:
@@ -300,6 +303,7 @@ def generate_proxies(
                 item.rating,
                 "lightroom_export",
                 item.export.relative_path,
+                source_digest,
                 status,
                 relative_path,
                 width,

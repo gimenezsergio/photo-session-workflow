@@ -306,6 +306,7 @@ Crear derivados privados para revisión eficiente.
 - La salida incorpora únicamente un perfil ICC sRGB estándar; no copia EXIF, GPS, XMP, comentarios ni otros metadatos fuente.
 - Bytes y píxeles de entrada tienen límites configurables antes de completar la decodificación. Los errores se informan por activo con códigos sanitizados y no detienen el registro de los demás resultados.
 - Cada proxy tiene un nombre relativo seguro derivado del identificador lógico y de sus bytes renderizados. Se publica exclusivamente en el workspace mediante la capacidad protegida de escritura.
+- Cada resultado conserva SHA-256 tanto de la exportación fuente como del proxy renderizado para detectar cambios entre revisión y empaquetado.
 - Una repetición reutiliza el proxy sólo si sus bytes coinciden exactamente. Nunca sobrescribe ni elimina derivados; si la entrada o configuración cambia, puede conservarse una versión adicional para limpieza manual futura.
 - Este recorte no genera `nef_approximation` y todavía no integra los proxies en el ZIP 0.2 existente.
 
@@ -339,6 +340,15 @@ Registrar una decisión explícita del usuario antes de preparar el paquete de r
 - No se genera el paquete de revisión sin confirmación explícita.
 - La confirmación no escribe estrellas ni selecciones en Lightroom/XMP.
 
+**Implementación inicial en memoria**
+
+- `create_selection_draft()` acepta exclusivamente una tanda completa y no vacía de proxies `generated` o `reused`; valida unicidad, rutas relativas, ratings, procedencia y SHA-256 de fuente/proxy.
+- El borrador comienza con todos los candidatos o con un subconjunto explícito. `update_selection()` devuelve un modelo nuevo para añadir o quitar `asset_id`, conserva el orden original y rechaza desconocidos, duplicados o instrucciones contradictorias.
+- El resumen informa candidatos, seleccionados y `below_recommended`, `within_recommended` o `above_recommended`. El rango 12–30 nunca impide confirmar: sesiones finales de cinco o siete imágenes son válidas.
+- `confirm_selection()` exige exactamente `explicit_confirmation=True`, rechaza una selección vacía y produce un modelo inmutable con digest determinista. No usa timestamps, rutas absolutas ni persistencia.
+- El generador del ZIP 0.2 existente ahora exige una confirmación válida, limita el manifiesto y las imágenes exactamente a sus activos y bloquea antes de publicar si falta un activo, cambia su resolución o difiere el SHA-256 de la exportación que originó el proxy.
+- P0-11 no escribe ratings, XMP, ACR ni selecciones de Lightroom; tampoco inicia Flask o SQLite.
+
 ### P0-12. Generar el paquete de revisión
 
 Preparar localmente el material mínimo necesario para revisión asistida.
@@ -354,6 +364,7 @@ Preparar localmente el material mínimo necesario para revisión asistida.
 **Implementación limitada sin hoja de contacto**
 
 - El ZIP local autorizado contiene exactamente `manifest.json` y `images/<nombre-exportado.jpg|jpeg>` para todos los activos seleccionados que tengan una única exportación válida.
+- La publicación requiere el objeto confirmado de P0-11; llamar al generador sin confirmación no lee exportaciones ni escribe en el workspace.
 - Si falta una exportación, hay duplicados o una entrada es inválida, la generación se detiene antes de publicar y conserva los identificadores y estados fallidos.
 - Cada JPG tiene un límite configurable y se lee como máximo hasta ese límite más un byte; también se valida un límite total antes y después de construir el ZIP.
 - El manifiesto y el orden ZIP son deterministas, con timestamps internos fijos. Los nombres internos se validan contra rutas absolutas, componentes padre, separadores y colisiones.
