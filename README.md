@@ -4,7 +4,7 @@ Proyecto local para diseñar y, más adelante, implementar un flujo de producci�
 
 ## Estado
 
-P0-01 a P0-14 están implementados, con recortes de P0-08 a P0-10 basados exclusivamente en exportaciones Lightroom declaradas: resolución exacta, proxies privados sRGB, hoja de contacto, confirmación explícita, paquete local 0.3, entrega manual y registro SQLite privado de recomendaciones. Todavía no hay aplicación Flask, aproximaciones desde NEF ni integración automática con Lightroom o ChatGPT.
+P0-01 a P0-15 están implementados, con recortes de P0-08 a P0-10 basados exclusivamente en exportaciones Lightroom declaradas: resolución exacta, proxies privados sRGB, hoja de contacto, confirmación, paquete local 0.3, entrega manual, registro SQLite privado y verificación de integridad. Todavía no hay aplicación Flask, aproximaciones desde NEF ni integración automática con Lightroom o ChatGPT.
 
 ## Objetivo
 
@@ -76,7 +76,7 @@ Instalar el proyecto en un entorno virtual antes de ejecutar este bloque:
 py -3 -m pip install -e .
 ```
 
-## Pruebas de P0-01 a P0-14
+## Pruebas de P0-01 a P0-15
 
 Además de Pillow, declarada en `pyproject.toml`, la suite no requiere ejecutables ni servicios externos. En Windows, con Python 3.11 o posterior:
 
@@ -111,6 +111,7 @@ photo-session-workflow/
 │   ├── confirmed_review_package.py # Paquete 0.3 de la selección confirmada
 │   ├── review_handoff.py # Revisión sanitizada y descarga explícita en memoria
 │   ├── manual_recommendations.py # Registro SQLite manual sin aplicación
+│   ├── integrity.py     # Snapshots y controles de límites de seguridad
 │   └── relations.py     # Relaciones lógicas entre entradas admitidas
 ├── templates/           # Reservado para plantillas HTML futuras
 ├── tests/               # unittest y generador de fixtures temporales
@@ -122,4 +123,4 @@ photo-session-workflow/
 
 ## Próxima revisión
 
-La implementación debe detenerse al completar P0-14. Las verificaciones integrales P0-15/P0-16, una interfaz Flask y las aproximaciones desde NEF requieren el siguiente recorte. Las preguntas restantes están documentadas como decisiones futuras y no bloquean estas bases.
+La implementación debe detenerse al completar P0-15. La prueba de volumen P0-16, una interfaz Flask y las aproximaciones desde NEF requieren el siguiente recorte. Las preguntas restantes están documentadas como decisiones futuras y no bloquean estas bases.

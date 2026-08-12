@@ -427,6 +427,16 @@ Ejecutar pruebas de no modificación y separación de datos.
 - No se elimina ningún archivo.
 - Todas las escrituras observadas pertenecen al workspace privado autorizado.
 
+**Implementación inicial verificable**
+
+- `capture_source_integrity()` acepta el inventario P0-03 y, opcionalmente, el inventario separado de exportaciones Lightroom. Abre exclusivamente sus entradas admitidas mediante `SessionReader`, calcula SHA-256 en bloques y contrasta tamaño y mtime reales con el inventario antes de producir un snapshot inmutable.
+- Para evitar duplicar una exportación, el flujo normal combina un inventario principal no recursivo con el inventario declarado; si dos inventarios describen la misma ruta, la captura falla de forma visible.
+- El snapshot conserva sólo ruta relativa, clase de fuente, extensión normalizada, tamaño, mtime y SHA-256. Un digest global determinista sella su contenido y la comparación informa rutas agregadas, faltantes y cambiadas sin exponer la raíz absoluta.
+- `fingerprint_file()` revalida la frontera, lee con memoria acotada y comprueba tamaño/mtime antes y después. `SessionReader` rechaza además `.lrcat`, `.lrcat-data` y `.lrdata` aun ante una invocación directa; elementos ignorados o rechazados nunca se hashean.
+- `check_repository_hygiene()` valida una tupla obtenida externamente mediante `git ls-files` y marca fotografías, RAW, XMP/ACR, catálogos/datos Lightroom, SQLite y auxiliares, ZIP, `.env` y configuraciones locales. El control no ejecuta Git ni lee esos archivos.
+- Las pruebas integrales sintéticas demuestran que capturar y comparar no escribe, que las escrituras autorizadas aparecen sólo bajo el workspace y que sesión y repositorio permanecen byte a byte idénticos.
+- La protección detecta cambios observables y rutas accidentales, pero no constituye un sandbox contra un proceso local hostil capaz de sustituir un archivo conservando simultáneamente contenido de metadatos o de competir durante una apertura.
+
 ### P0-16. Verificar volumen objetivo
 
 Probar el recorrido completo con una sesión representativa de hasta 200 fotografías.
