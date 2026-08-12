@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import os
+import hashlib
 import stat
 import tempfile
 from dataclasses import dataclass
@@ -168,6 +169,11 @@ class SessionReader:
         relative = Path(relative_path)
         if not os.fspath(relative_path) or relative.is_absolute():
             raise PathBoundaryError("session path must be a non-empty relative path")
+        if any(
+            part.casefold().endswith((".lrcat", ".lrcat-data", ".lrdata"))
+            for part in relative.parts
+        ):
+            raise PathBoundaryError("Lightroom catalog data is prohibited")
         candidate = self._root / relative
         reject_links_or_reparse_points(candidate, label="session path")
         try:
@@ -188,6 +194,46 @@ class SessionReader:
     def read_bytes(self, relative_path: str | os.PathLike[str]) -> bytes:
         with self.open_binary(relative_path) as stream:
             return stream.read()
+
+    def fingerprint_file(
+        self,
+        relative_path: str | os.PathLike[str],
+        *,
+        chunk_size: int = 1_048_576,
+    ) -> tuple[int, int, str]:
+        """Return size, mtime nanoseconds and SHA-256 with bounded memory."""
+
+        if (
+            not isinstance(chunk_size, int)
+            or isinstance(chunk_size, bool)
+            or not 4_096 <= chunk_size <= 16_777_216
+        ):
+            raise ValueError("chunk_size must be between 4096 and 16777216")
+        digest = hashlib.sha256()
+        size = 0
+        source = self._existing_file(relative_path)
+        try:
+            before = source.stat(follow_symlinks=False)
+        except OSError as exc:
+            raise PathBoundaryError("session file metadata is unavailable") from exc
+        with source.open("rb") as stream:
+            while True:
+                block = stream.read(chunk_size)
+                if not block:
+                    break
+                size += len(block)
+                digest.update(block)
+        try:
+            after = source.stat(follow_symlinks=False)
+        except OSError as exc:
+            raise PathBoundaryError("session file metadata is unavailable") from exc
+        if (
+            before.st_size != after.st_size
+            or before.st_mtime_ns != after.st_mtime_ns
+            or size != after.st_size
+        ):
+            raise PathBoundaryError("session file changed during fingerprint")
+        return size, after.st_mtime_ns, digest.hexdigest()
 
     def inventory(
         self,

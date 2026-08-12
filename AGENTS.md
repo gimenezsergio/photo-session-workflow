@@ -6,7 +6,7 @@ Estas instrucciones aplican a todo el proyecto.
 
 ## Estado actual
 
-La implementación está autorizada exclusivamente para P0-01 a P0-14, con recortes explícitos de P0-08 a P0-10 basados en exportaciones Lightroom declaradas:
+La implementación está autorizada exclusivamente para P0-01 a P0-15, con recortes explícitos de P0-08 a P0-10 basados en exportaciones Lightroom declaradas:
 
 - contrato de sesión, configuración y fronteras de rutas;
 - fixtures sintéticos generados durante las pruebas.
@@ -20,6 +20,7 @@ La implementación está autorizada exclusivamente para P0-01 a P0-14, con recor
 - paquete de revisión 0.3 generado exclusivamente desde proxies privados de la selección confirmada, con una hoja de contacto específica para ese subconjunto.
 - inspección local sanitizada del paquete 0.3 y entrega de sus bytes en memoria sólo después de una acción de descarga explícita.
 - registro manual de recomendaciones y estados en una base SQLite privada del workspace, sin acciones para aplicarlas.
+- snapshots SHA-256 en streaming de fuentes admitidas y exportaciones declaradas, comparación antes/después y control puro de rutas versionadas.
 
 Hasta una nueva autorización:
 
@@ -29,7 +30,7 @@ Hasta una nueva autorización:
 - no instalar dependencias sin justificación previa;
 - no procesar fotografías reales;
 - no abrir, copiar ni modificar catálogos Lightroom.
-- no avanzar a las verificaciones integrales P0-15/P0-16 sin mantener las fronteras de lectura y privacidad.
+- no avanzar a la prueba de volumen P0-16 con material real sin una autorización explícita de la sesión.
 
 ## Alcance activo de la Fase 0
 
@@ -95,8 +96,11 @@ Quedan fuera de la Fase 0 la preproducción, las propuestas creativas, las prese
 - La entrega para descarga debe exigir exactamente `explicit_download=True`, volver a validar tamaño y SHA-256 y devolver el ZIP sólo en memoria. No escribir en una carpeta externa, abrir navegador, iniciar una carga ni inferir consentimiento.
 - P0-14 usa únicamente `sqlite3` de la biblioteca estándar y una base relativa dentro del workspace. Debe aceptar sólo categorías y estados enumerados, vincular cada registro al hash del paquete y a un activo revisado, parametrizar todo SQL y conservar un historial de cambios.
 - El registro es exclusivamente manual. No debe importar respuestas externas, aplicar ajustes, crear o escribir XMP/ACR, controlar Lightroom, ofrecer borrado ni exponer consultas SQL libres.
+- P0-15 puede abrir en modo lectura únicamente entradas admitidas por P0-03 y JPG/JPEG del inventario separado de exportaciones. Debe calcular SHA-256 en streaming, verificar tamaño/mtime contra el inventario y producir sólo rutas relativas y errores sanitizados.
+- La comparación de integridad debe hacer visibles fuentes agregadas, faltantes o cambiadas. Los catálogos y datos Lightroom permanecen prohibidos incluso si se invoca directamente la capacidad genérica de lectura.
+- El control de higiene del repositorio recibe externamente la lista de archivos versionados y rechaza material fotográfico, XMP/ACR, catálogos, bases, paquetes y configuraciones locales; no ejecuta comandos Git por sí mismo.
 - Pillow es la única dependencia de ejecución incorporada para este recorte; no utilizar ejecutables de imagen, red ni servicios externos.
-- No generar aproximaciones NEF, ampliar P0-15, iniciar Flask ni agregar otras formas de persistencia hasta nueva autorización.
+- No generar aproximaciones NEF, ampliar P0-16, iniciar Flask ni agregar otras formas de persistencia hasta nueva autorización.
 
 ## Criterios para cambios futuros
 
