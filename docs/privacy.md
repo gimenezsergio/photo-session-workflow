@@ -65,6 +65,8 @@ Reducir la exposición de fotografías y datos personales mediante almacenamient
 - Registrar la procedencia del preview sin exponer la ruta absoluta de la fuente en la interfaz o exportaciones.
 - Minimizar el manifiesto y los proxies antes de generar el paquete: excluir rutas absolutas, GPS, datos personales y metadatos no necesarios.
 - Mostrar una advertencia de privacidad antes de descargar el paquete para compartirlo manualmente.
+- Guardar recomendaciones manuales sólo en la base SQLite del workspace privado. La base conserva identificadores técnicos, texto ingresado por el usuario, estados y timestamps; no copia imágenes, XMP, EXIF, GPS ni rutas absolutas de la sesión.
+- Tratar el texto libre de recomendaciones como dato privado: puede contener observaciones sensibles aunque la aplicación no las infiera ni las transmita.
 
 ## Retención y eliminación
 

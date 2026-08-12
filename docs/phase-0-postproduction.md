@@ -405,6 +405,16 @@ Permitir registrar resultados obtenidos durante la revisión asistida sin import
 - No existe una acción que aplique resultados automáticamente ni que modifique XMP/ACR.
 - El estado se almacena sólo en la base local del workflow y conserva referencia al activo correspondiente.
 
+**Implementación inicial persistente y manual**
+
+- `ManualRecommendationStore` encapsula una base SQLite creada mediante `sqlite3` de la biblioteca estándar en una ruta relativa configurable del workspace. No acepta rutas absolutas, escapes, symlinks, junctions ni reparse points detectables.
+- Las categorías admitidas son `exposure`, `color`, `series_coherence`, `similarity`, `selection`, `global_adjustment` y `mask`; los únicos estados son `pending`, `confirmed` y `rejected`.
+- Cada registro conserva un UUID local, SHA-256 del paquete revisado, `asset_id`, identificador para Lightroom, categoría, texto ingresado manualmente, estado y timestamps UTC. Sólo puede vincularse a un activo presente en el resumen P0-13 correspondiente.
+- Todos los comandos SQL son fijos y parametrizados. Los cambios de estado pueden usar un estado esperado para detectar concurrencia y generan un evento inmutable con estado anterior, nuevo estado, nota opcional y timestamp.
+- La base y sus archivos transitorios permanecen en el workspace y están ignorados por Git. El almacenamiento no lee la sesión ni ofrece operaciones para borrar registros, importar resultados externos, aplicar ajustes, escribir XMP/ACR o controlar Lightroom.
+- La interfaz para ingresar y consultar recomendaciones sigue pendiente; esta implementación proporciona únicamente el dominio y la persistencia local que usará esa interfaz futura.
+- Las fronteras se revalidan antes de cada conexión y protegen frente a rutas accidentales detectables; no constituyen un sandbox contra otro proceso local hostil que cambie simultáneamente el filesystem. Las migraciones de esquema quedan como decisión futura antes de ampliar esta base.
+
 ### P0-15. Verificar límites de seguridad
 
 Ejecutar pruebas de no modificación y separación de datos.

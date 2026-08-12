@@ -32,6 +32,15 @@ instance/
 *.sqlite
 *.sqlite3
 *.db
+*.sqlite-journal
+*.sqlite3-journal
+*.db-journal
+*.sqlite-wal
+*.sqlite3-wal
+*.db-wal
+*.sqlite-shm
+*.sqlite3-shm
+*.db-shm
 logs/
 cache/
 work/
