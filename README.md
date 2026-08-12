@@ -4,7 +4,7 @@ Proyecto local para diseñar y, más adelante, implementar un flujo de producci�
 
 ## Estado
 
-P0-01 a P0-07 están implementados, junto con recortes de P0-08 a P0-10 basados exclusivamente en exportaciones Lightroom declaradas: resolución exacta, paquete local, proxies privados sRGB y hoja de contacto. Todavía no hay aplicación Flask, SQLite, aproximaciones desde NEF ni integración automática con Lightroom o ChatGPT.
+P0-01 a P0-11 están implementados, con recortes de P0-08 a P0-10 basados exclusivamente en exportaciones Lightroom declaradas: resolución exacta, paquete local, proxies privados sRGB, hoja de contacto y confirmación explícita en memoria. Todavía no hay aplicación Flask, SQLite, aproximaciones desde NEF ni integración automática con Lightroom o ChatGPT.
 
 ## Objetivo
 
@@ -74,7 +74,7 @@ Instalar el proyecto en un entorno virtual antes de ejecutar este bloque:
 py -3 -m pip install -e .
 ```
 
-## Pruebas de P0-01 a P0-10
+## Pruebas de P0-01 a P0-11
 
 Además de Pillow, declarada en `pyproject.toml`, la suite no requiere ejecutables ni servicios externos. En Windows, con Python 3.11 o posterior:
 
@@ -105,6 +105,7 @@ photo-session-workflow/
 │   ├── inventory.py     # Inventario inmutable de metadatos del filesystem
 │   ├── paths.py         # Fronteras y capacidades de filesystem
 │   ├── proxies.py       # Proxies sRGB desde exportaciones Lightroom declaradas
+│   ├── selection_confirmation.py # Confirmación reducida explícita en memoria
 │   └── relations.py     # Relaciones lógicas entre entradas admitidas
 ├── templates/           # Reservado para plantillas HTML futuras
 ├── tests/               # unittest y generador de fixtures temporales
@@ -116,4 +117,4 @@ photo-session-workflow/
 
 ## Próxima revisión
 
-La implementación debe detenerse al completar este recorte de P0-09/P0-10. Las aproximaciones desde NEF y P0-11 o tareas posteriores requieren una autorización nueva. Las preguntas restantes están documentadas como decisiones futuras y no bloquean estas bases.
+La implementación debe detenerse al completar P0-11. Las aproximaciones desde NEF, la ampliación P0-12 y tareas posteriores requieren una autorización nueva. Las preguntas restantes están documentadas como decisiones futuras y no bloquean estas bases.
