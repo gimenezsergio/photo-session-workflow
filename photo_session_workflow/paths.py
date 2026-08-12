@@ -308,6 +308,73 @@ class WorkspaceWriter:
     def root(self) -> Path:
         return self._root
 
+    def ensure_directory(
+        self, relative_path: str | os.PathLike[str]
+    ) -> None:
+        """Create and validate a directory contained by the private workspace."""
+
+        relative = Path(relative_path)
+        if (
+            not os.fspath(relative_path)
+            or relative.is_absolute()
+            or bool(relative.drive)
+            or relative == Path(".")
+            or ".." in relative.parts
+        ):
+            raise PathBoundaryError(
+                "workspace directory must be a non-empty relative subdirectory"
+            )
+        destination = self._root / relative
+        reject_links_or_reparse_points(destination, label="workspace directory")
+        try:
+            unresolved = destination.resolve(strict=False)
+        except (OSError, RuntimeError) as exc:
+            raise PathBoundaryError("workspace directory is invalid") from exc
+        if not _contains(self._root, unresolved):
+            raise PathBoundaryError("workspace directory escapes workspace_root")
+        try:
+            destination.mkdir(parents=True, exist_ok=True)
+        except OSError as exc:
+            raise PathBoundaryError("workspace directory could not be created") from exc
+        reject_links_or_reparse_points(destination, label="workspace directory")
+        try:
+            resolved = destination.resolve(strict=True)
+            mode = destination.stat(follow_symlinks=False).st_mode
+        except (OSError, RuntimeError) as exc:
+            raise PathBoundaryError("workspace directory is invalid") from exc
+        if not _contains(self._root, resolved) or not stat.S_ISDIR(mode):
+            raise PathBoundaryError("workspace directory is invalid")
+
+    def read_bytes(
+        self,
+        relative_path: str | os.PathLike[str],
+        *,
+        max_bytes: int,
+    ) -> bytes:
+        """Read one regular workspace file with an explicit upper bound."""
+
+        if not isinstance(max_bytes, int) or isinstance(max_bytes, bool) or max_bytes < 1:
+            raise ValueError("max_bytes must be a positive integer")
+        relative = Path(relative_path)
+        if not os.fspath(relative_path) or relative.is_absolute() or ".." in relative.parts:
+            raise PathBoundaryError("workspace path must be a non-empty relative path")
+        candidate = self._root / relative
+        reject_links_or_reparse_points(candidate, label="workspace path")
+        try:
+            resolved = candidate.resolve(strict=True)
+        except (OSError, RuntimeError) as exc:
+            raise PathBoundaryError("workspace path must reference an existing file") from exc
+        if not _contains(self._root, resolved):
+            raise PathBoundaryError("workspace path escapes workspace_root")
+        try:
+            mode = candidate.stat(follow_symlinks=False).st_mode
+        except OSError as exc:
+            raise PathBoundaryError("workspace path is invalid") from exc
+        if not stat.S_ISREG(mode):
+            raise PathBoundaryError("workspace path must reference a regular file")
+        with resolved.open("rb") as stream:
+            return stream.read(max_bytes + 1)
+
     def write_bytes(
         self,
         relative_path: str | os.PathLike[str],
