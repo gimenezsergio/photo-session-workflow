@@ -6,7 +6,7 @@ Estas instrucciones aplican a todo el proyecto.
 
 ## Estado actual
 
-La implementación está autorizada exclusivamente para P0-01 a P0-11, con recortes explícitos de P0-08 a P0-10 basados en exportaciones Lightroom declaradas:
+La implementación está autorizada exclusivamente para P0-01 a P0-12, con recortes explícitos de P0-08 a P0-10 basados en exportaciones Lightroom declaradas:
 
 - contrato de sesión, configuración y fronteras de rutas;
 - fixtures sintéticos generados durante las pruebas.
@@ -17,6 +17,7 @@ La implementación está autorizada exclusivamente para P0-01 a P0-11, con recor
 - inventario separado de una subcarpeta de exportación declarada, resolución exacta de JPG para activos seleccionados, manifiesto 0.2 y ZIP local sin hoja de contacto.
 - proxies privados re-encodificados desde exportaciones Lightroom resueltas y una hoja de contacto construida exclusivamente desde esos proxies.
 - borrador y confirmación explícita de una selección reducida en memoria antes de generar cualquier paquete.
+- paquete de revisión 0.3 generado exclusivamente desde proxies privados de la selección confirmada, con una hoja de contacto específica para ese subconjunto.
 
 Hasta una nueva autorización:
 
@@ -26,7 +27,7 @@ Hasta una nueva autorización:
 - no instalar dependencias sin justificación previa;
 - no procesar fotografías reales;
 - no abrir, copiar ni modificar catálogos Lightroom.
-- no ampliar el paquete, implementar descarga o registrar recomendaciones de P0-12 a P0-14.
+- no implementar revisión/descarga ni registro de recomendaciones de P0-13 o P0-14.
 
 ## Alcance activo de la Fase 0
 
@@ -76,7 +77,7 @@ Quedan fuera de la Fase 0 la preproducción, las propuestas creativas, las prese
 - La carpeta configurada mediante `lightroom_export_relative_directory` es una subcarpeta relativa, existente y declarada por el usuario; sólo sus JPG/JPEG directos pueden considerarse exportaciones Lightroom, sin verificar su historial real.
 - El inventario de exportaciones es separado, no recursivo y no interpreta XMP. Los JPG de cámara del inventario principal nunca sustituyen una exportación declarada dentro del paquete.
 - La resolución usa exclusivamente el nombre base exacto comparado con `casefold()`; faltantes, duplicados, entradas inválidas y sufijos no inferidos bloquean un paquete incompleto.
-- El ZIP autorizado contiene sólo `manifest.json` 0.2 e imágenes JPG/JPEG resueltas bajo `images/`, se publica exclusivamente en el workspace y nunca se transmite.
+- El ZIP 0.2 basado en exportaciones Lightroom se conserva sólo como compatibilidad interna del recorte inicial; el paquete canónico P0-12 usa el esquema 0.3, una hoja de contacto confirmada y proxies privados verificados.
 - No afirmar que el empaquetado elimina EXIF incrustado: la política de metadatos depende de la configuración de exportación utilizada en Lightroom.
 - P0-09 sólo puede decodificar los JPG/JPEG `resolved` dentro de la carpeta Lightroom declarada. Los NEF, JPG de cámara, XMP, ACR y catálogos quedan fuera de esa ruta de lectura.
 - Los proxies deben aplicar orientación EXIF, convertir perfiles ICC válidos a sRGB, limitar bytes y píxeles, y re-encodificar sin copiar EXIF, XMP, comentarios ni otros metadatos fuente. Ante ausencia de perfil sólo se admite asumir sRGB para imágenes RGB o escala de grises y debe advertirse.
@@ -84,8 +85,12 @@ Quedan fuera de la Fase 0 la preproducción, las propuestas creativas, las prese
 - P0-10 debe leer exclusivamente proxies privados verificados por hash. Una tanda incompleta o alterada bloquea la hoja de contacto.
 - P0-11 debe derivar candidatos únicamente de una tanda completa de proxies, permitir altas y bajas puras por `asset_id` y exigir `explicit_confirmation=True`. El rango 12–30 es una recomendación visible, nunca un bloqueo; una sesión de cinco o siete imágenes puede confirmarse.
 - La confirmación debe sellar identificador, rating, procedencia, rutas relativas y hashes de fuente/proxy. El paquete existente debe rechazar confirmaciones ausentes, inconsistentes o correspondientes a una exportación que cambió después de generar el proxy.
+- P0-12 sólo puede leer proxies verificados dentro del workspace. Debe regenerar una hoja de contacto para el subconjunto confirmado y no volver a abrir la sesión, exportaciones Lightroom, NEF, JPG de cámara, XMP, ACR ni catálogos.
+- El paquete 0.3 contiene únicamente `manifest.json`, `contact-sheet.jpg` e `images/` con un proxy por activo confirmado. El manifiesto minimizado no incluye rutas o hashes fuente, GPS, XML, EXIF completo, credenciales ni timestamps.
+- Cada proxy y la hoja de contacto deben verificarse por SHA-256 y límites configurables antes de empaquetarse. El ZIP determinista se publica exclusivamente sin reemplazar un destino existente; los derivados intermedios no se eliminan automáticamente.
+- El paquete permanece local y contiene imágenes identificables. Compartirlo exige una acción manual y explícita del usuario; no existe transmisión automática, API ni control de ChatGPT.
 - Pillow es la única dependencia de ejecución incorporada para este recorte; no utilizar ejecutables de imagen, red ni servicios externos.
-- No generar aproximaciones NEF, ampliar P0-12, iniciar Flask/SQLite ni agregar persistencia hasta nueva autorización.
+- No generar aproximaciones NEF, ampliar P0-13, iniciar Flask/SQLite ni agregar persistencia hasta nueva autorización.
 
 ## Criterios para cambios futuros
 

@@ -4,7 +4,7 @@ Proyecto local para diseñar y, más adelante, implementar un flujo de producci�
 
 ## Estado
 
-P0-01 a P0-11 están implementados, con recortes de P0-08 a P0-10 basados exclusivamente en exportaciones Lightroom declaradas: resolución exacta, paquete local, proxies privados sRGB, hoja de contacto y confirmación explícita en memoria. Todavía no hay aplicación Flask, SQLite, aproximaciones desde NEF ni integración automática con Lightroom o ChatGPT.
+P0-01 a P0-12 están implementados, con recortes de P0-08 a P0-10 basados exclusivamente en exportaciones Lightroom declaradas: resolución exacta, proxies privados sRGB, hoja de contacto, confirmación explícita en memoria y paquete local 0.3 limitado a la selección confirmada. Todavía no hay aplicación Flask, SQLite, aproximaciones desde NEF ni integración automática con Lightroom o ChatGPT.
 
 ## Objetivo
 
@@ -51,6 +51,7 @@ Copiar `config.example.json` como `config.local.json` y reemplazar los valores p
 - `exiftool.max_output_bytes`: límite de captura por stream.
 - `proxy`: lado largo, calidad JPEG y límites de bytes y píxeles de la exportación fuente;
 - `contact_sheet`: grilla, dimensiones, calidad y límites de la hoja de contacto.
+- `confirmed_review_package`: límites por proxy, para la hoja confirmada y para el ZIP completo.
 
 `config.local.json` está ignorado por Git. Las tres raíces deben ser disjuntas: la validación rechaza igualdad, anidamiento en cualquier dirección y symlinks, junctions o reparse points detectables.
 
@@ -74,7 +75,7 @@ Instalar el proyecto en un entorno virtual antes de ejecutar este bloque:
 py -3 -m pip install -e .
 ```
 
-## Pruebas de P0-01 a P0-11
+## Pruebas de P0-01 a P0-12
 
 Además de Pillow, declarada en `pyproject.toml`, la suite no requiere ejecutables ni servicios externos. En Windows, con Python 3.11 o posterior:
 
@@ -106,6 +107,7 @@ photo-session-workflow/
 │   ├── paths.py         # Fronteras y capacidades de filesystem
 │   ├── proxies.py       # Proxies sRGB desde exportaciones Lightroom declaradas
 │   ├── selection_confirmation.py # Confirmación reducida explícita en memoria
+│   ├── confirmed_review_package.py # Paquete 0.3 de la selección confirmada
 │   └── relations.py     # Relaciones lógicas entre entradas admitidas
 ├── templates/           # Reservado para plantillas HTML futuras
 ├── tests/               # unittest y generador de fixtures temporales
@@ -117,4 +119,4 @@ photo-session-workflow/
 
 ## Próxima revisión
 
-La implementación debe detenerse al completar P0-11. Las aproximaciones desde NEF, la ampliación P0-12 y tareas posteriores requieren una autorización nueva. Las preguntas restantes están documentadas como decisiones futuras y no bloquean estas bases.
+La implementación debe detenerse al completar P0-12. La revisión/descarga del paquete en P0-13, las aproximaciones desde NEF y las tareas posteriores requieren una autorización nueva. Las preguntas restantes están documentadas como decisiones futuras y no bloquean estas bases.

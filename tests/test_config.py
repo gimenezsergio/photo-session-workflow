@@ -207,12 +207,21 @@ class ConfigTests(unittest.TestCase):
                 "max_output_pixels": 5000000,
                 "max_proxy_bytes": 2000000,
             }
+            payload["confirmed_review_package"] = {
+                "max_proxy_bytes": 3000000,
+                "max_contact_sheet_bytes": 4000000,
+                "max_package_bytes": 9000000,
+            }
             config_path.write_text(json.dumps(payload), encoding="utf-8")
             config = load_config(config_path)
             self.assertEqual(config.proxy_settings.long_edge_px, 1024)
             self.assertEqual(config.proxy_settings.jpeg_quality, 82)
             self.assertEqual(config.contact_sheet_settings.columns, 3)
             self.assertEqual(config.contact_sheet_settings.jpeg_quality, 84)
+            self.assertEqual(
+                config.confirmed_review_package_limits.max_contact_sheet_bytes,
+                4000000,
+            )
 
     def test_invalid_proxy_and_contact_sheet_settings_are_rejected(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
@@ -239,6 +248,21 @@ class ConfigTests(unittest.TestCase):
             payload["proxy"] = {"write_exif": True}
             config_path.write_text(json.dumps(payload), encoding="utf-8")
             with self.assertRaisesRegex(ConfigurationError, "unsupported keys"):
+                load_config(config_path)
+
+    def test_invalid_confirmed_review_package_limits_are_rejected(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            parent = Path(temporary)
+            session, workspace, repository = self._roots(parent)
+            config_path = self._write_config(parent, session, workspace, repository)
+            payload = json.loads(config_path.read_text(encoding="utf-8"))
+            payload["confirmed_review_package"] = {
+                "max_proxy_bytes": 200,
+                "max_contact_sheet_bytes": 300,
+                "max_package_bytes": 100,
+            }
+            config_path.write_text(json.dumps(payload), encoding="utf-8")
+            with self.assertRaisesRegex(ConfigurationError, "individual limit"):
                 load_config(config_path)
 
     @unittest.skipUnless(os.name == "nt", "Windows-specific path behavior")

@@ -32,5 +32,10 @@
     "jpeg_quality": 85,
     "max_output_pixels": 100000000,
     "max_proxy_bytes": 10000000
+  },
+  "confirmed_review_package": {
+    "max_proxy_bytes": 10000000,
+    "max_contact_sheet_bytes": 50000000,
+    "max_package_bytes": 250000000
   }
 }
