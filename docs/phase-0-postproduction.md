@@ -361,17 +361,19 @@ Preparar localmente el material mínimo necesario para revisión asistida.
 - La generación no transmite archivos ni requiere credenciales externas.
 - Un error en una fotografía se informa sin incorporar silenciosamente un paquete incompleto.
 
-**Implementación limitada sin hoja de contacto**
+**Implementación inicial**
 
-- El ZIP local autorizado contiene exactamente `manifest.json` y `images/<nombre-exportado.jpg|jpeg>` para todos los activos seleccionados que tengan una única exportación válida.
-- La publicación requiere el objeto confirmado de P0-11; llamar al generador sin confirmación no lee exportaciones ni escribe en el workspace.
-- Si falta una exportación, hay duplicados o una entrada es inválida, la generación se detiene antes de publicar y conserva los identificadores y estados fallidos.
-- Cada JPG tiene un límite configurable y se lee como máximo hasta ese límite más un byte; también se valida un límite total antes y después de construir el ZIP.
+- El paquete canónico usa el esquema de manifiesto 0.3 y contiene exactamente `manifest.json`, `contact-sheet.jpg` e `images/<proxy-contenido>.jpg`, con un proxy por activo de la selección confirmada.
+- La generación exige una confirmación P0-11 válida, no vacía y consistente con una tanda completa de proxies. Los activos no confirmados nunca se incorporan.
+- La hoja de contacto se regenera específicamente para el subconjunto confirmado. Tanto la hoja como cada proxy se leen exclusivamente desde el workspace privado y se verifican por ruta relativa, tamaño y SHA-256 antes de empaquetarse.
+- Durante P0-12 no se vuelve a abrir la sesión ni la carpeta de exportaciones: NEF, JPG de cámara, JPG exportados, XMP, ACR y catálogos quedan fuera de la capacidad entregada al generador.
+- El manifiesto minimizado conserva identificador para Lightroom, rating XMP, procedencia `lightroom_export`, dimensiones del proxy y advertencias. No contiene rutas o hashes fuente, rutas absolutas, GPS, XML, EXIF completo, datos personales, credenciales ni timestamps.
+- Los límites configurables se aplican por proxy, a la hoja de contacto y al contenido/ZIP total antes de publicar. Un elemento ausente, alterado, ilegible o excedido bloquea el paquete completo.
 - El manifiesto y el orden ZIP son deterministas, con timestamps internos fijos. Los nombres internos se validan contra rutas absolutas, componentes padre, separadores y colisiones.
-- La publicación usa un temporal en el mismo directorio del workspace, sincronización completa y enlace exclusivo atómico. Nunca sobrescribe un paquete existente y limpia el temporal ante errores.
-- El resultado local registra tamaño y SHA-256 del ZIP. No se transmite ni sube automáticamente.
-- Los JPG se incorporan exactamente como fueron exportados. La aplicación no afirma eliminar EXIF; su contenido y política de metadatos dependen de la configuración de exportación usada en Lightroom.
-- La hoja de contacto, proxies desde NEF, interfaz Flask y persistencia SQLite siguen fuera de este recorte.
+- La publicación usa la escritura exclusiva del workspace y nunca reemplaza un paquete existente. Ante error no se publica un ZIP parcial; los proxies y hojas derivados no se eliminan automáticamente.
+- El resultado local registra tamaño y SHA-256 del ZIP. El paquete contiene imágenes identificables, permanece local y sólo puede compartirse mediante una acción manual y explícita del usuario; no se transmite ni sube automáticamente.
+- El ZIP 0.2 que incorporaba directamente exportaciones Lightroom queda temporalmente como compatibilidad interna del recorte anterior, pero no es el paquete canónico de P0-12.
+- Proxies desde NEF, interfaz Flask, descarga P0-13 y persistencia SQLite siguen fuera de este recorte.
 
 ### P0-13. Permitir revisar y descargar el paquete
 

@@ -26,6 +26,9 @@ class SelectionCandidate:
     source_sha256: str
     proxy_relative_path: str
     proxy_sha256: str
+    proxy_width_px: int
+    proxy_height_px: int
+    proxy_size_bytes: int
 
 
 @dataclass(frozen=True, slots=True, init=False)
@@ -100,6 +103,15 @@ def _candidate(entry: ProxyEntry) -> SelectionCandidate:
         raise SelectionConfirmationError("selection candidate proxy path is invalid")
     if not re.fullmatch(r"[0-9a-f]{64}", entry.sha256):
         raise SelectionConfirmationError("selection candidate proxy hash is invalid")
+    if (
+        entry.width_px is None
+        or entry.height_px is None
+        or entry.size_bytes is None
+        or entry.width_px < 1
+        or entry.height_px < 1
+        or entry.size_bytes < 1
+    ):
+        raise SelectionConfirmationError("selection candidate proxy metadata is invalid")
     return SelectionCandidate(
         entry.asset_id,
         entry.identifier_name,
@@ -109,6 +121,9 @@ def _candidate(entry: ProxyEntry) -> SelectionCandidate:
         entry.source_sha256,
         PurePosixPath(entry.proxy_relative_path.replace("\\", "/")).as_posix(),
         entry.sha256,
+        entry.width_px,
+        entry.height_px,
+        entry.size_bytes,
     )
 
 
@@ -248,6 +263,9 @@ def _digest(selected: tuple[SelectionCandidate, ...]) -> str:
             "source_sha256": item.source_sha256,
             "proxy_relative_path": item.proxy_relative_path,
             "proxy_sha256": item.proxy_sha256,
+            "proxy_width_px": item.proxy_width_px,
+            "proxy_height_px": item.proxy_height_px,
+            "proxy_size_bytes": item.proxy_size_bytes,
             "rating": item.rating,
         }
         for item in selected

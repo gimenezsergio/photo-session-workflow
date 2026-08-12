@@ -9,6 +9,7 @@ from pathlib import Path
 
 from .exif import ExifConfigurationError, ExifToolSettings
 from .contact_sheet import ContactSheetError, ContactSheetSettings
+from .confirmed_review_package import ConfirmedReviewPackageLimits
 from .paths import PathBoundaryError, RootBoundaries, SessionReader
 from .proxies import ProxyConfigurationError, ProxySettings
 from .review_package import ReviewPackageLimits
@@ -31,6 +32,9 @@ class Phase0Config:
     )
     proxy_settings: ProxySettings = ProxySettings()
     contact_sheet_settings: ContactSheetSettings = ContactSheetSettings()
+    confirmed_review_package_limits: ConfirmedReviewPackageLimits = (
+        ConfirmedReviewPackageLimits()
+    )
 
     @property
     def session_root(self) -> Path:
@@ -176,6 +180,27 @@ def load_config(config_path: str | os.PathLike[str]) -> Phase0Config:
         contact_settings = ContactSheetSettings.create(**contact_payload)
     except (ContactSheetError, TypeError) as exc:
         raise ConfigurationError(str(exc)) from exc
+
+    confirmed_package_payload = payload.get("confirmed_review_package", {})
+    if not isinstance(confirmed_package_payload, dict):
+        raise ConfigurationError(
+            "confirmed_review_package configuration must be an object"
+        )
+    confirmed_package_allowed = {
+        "max_proxy_bytes",
+        "max_contact_sheet_bytes",
+        "max_package_bytes",
+    }
+    if set(confirmed_package_payload) - confirmed_package_allowed:
+        raise ConfigurationError(
+            "confirmed_review_package configuration contains unsupported keys"
+        )
+    try:
+        confirmed_package_limits = ConfirmedReviewPackageLimits.create(
+            **confirmed_package_payload
+        )
+    except (TypeError, ValueError) as exc:
+        raise ConfigurationError(str(exc)) from exc
     return Phase0Config(
         boundaries=boundaries,
         exiftool=exiftool,
@@ -184,4 +209,5 @@ def load_config(config_path: str | os.PathLike[str]) -> Phase0Config:
         review_package_limits=package_limits,
         proxy_settings=proxy_settings,
         contact_sheet_settings=contact_settings,
+        confirmed_review_package_limits=confirmed_package_limits,
     )
