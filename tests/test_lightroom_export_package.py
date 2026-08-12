@@ -24,6 +24,7 @@ from photo_session_workflow.paths import (
     SessionReader,
     WorkspaceWriter,
 )
+from photo_session_workflow.proxies import ProxyBatchResult, ProxyEntry
 from photo_session_workflow.rating_filter import RatingFilter, filter_assets_by_rating
 from photo_session_workflow.relations import relate_inventory
 from photo_session_workflow.review_package import (
@@ -33,6 +34,10 @@ from photo_session_workflow.review_package import (
     ReviewPackageLimits,
     build_review_manifest,
     generate_review_package,
+)
+from photo_session_workflow.selection_confirmation import (
+    confirm_selection,
+    create_selection_draft,
 )
 from photo_session_workflow.xmp_rating import RatingReadResult
 
@@ -95,6 +100,36 @@ class LightroomExportPackageTests(unittest.TestCase):
             max_jpg_bytes=jpg, max_package_bytes=package
         )
 
+    def _confirmation(self, resolutions, *, selected_asset_ids=None):
+        entries = tuple(
+            ProxyEntry(
+                item.asset_id,
+                item.identifier_name,
+                item.rating,
+                "lightroom_export",
+                item.export.relative_path,
+                hashlib.sha256(
+                    (self.session / item.export.relative_path).read_bytes()
+                ).hexdigest(),
+                "generated",
+                f"proxies/proxy-{index}.jpg",
+                80,
+                60,
+                100,
+                hashlib.sha256(item.asset_id.encode()).hexdigest(),
+                (),
+                None,
+            )
+            for index, item in enumerate(resolutions.resolutions)
+            if item.status == "resolved" and item.export is not None
+        )
+        batch = ProxyBatchResult(entries, len(entries), 0, 0)
+        draft = create_selection_draft(
+            batch,
+            initially_selected_asset_ids=selected_asset_ids,
+        )
+        return confirm_selection(draft, explicit_confirmation=True)
+
     def test_four_selected_assets_resolve_to_four_declared_exports(self) -> None:
         bases = ("DSC_9448", "DSC_9450", "DSC_9462", "DSC_9519")
         result = self._resolved(bases)
@@ -127,6 +162,7 @@ class LightroomExportPackageTests(unittest.TestCase):
             resolutions=resolved,
             destination_relative_path="review.zip",
             limits=self._limits(),
+            confirmation=self._confirmation(resolved),
         )
         with ZipFile(self.workspace / "review.zip") as archive:
             self.assertEqual(archive.namelist(), ["manifest.json", "images/selected.jpg"])
@@ -204,6 +240,7 @@ class LightroomExportPackageTests(unittest.TestCase):
                     resolutions=resolved,
                     destination_relative_path="review.zip",
                     limits=self._limits(),
+                    confirmation=self._confirmation(resolved),
                 )
         self.assertEqual(list(self.workspace.iterdir()), [])
 
@@ -243,11 +280,13 @@ class LightroomExportPackageTests(unittest.TestCase):
             self.reader, self.writer,
             export_relative_directory="export-app", resolutions=resolved,
             destination_relative_path="first.zip", limits=self._limits(),
+            confirmation=self._confirmation(resolved),
         )
         second = generate_review_package(
             self.reader, self.writer,
             export_relative_directory="export-app", resolutions=resolved,
             destination_relative_path="second.zip", limits=self._limits(),
+            confirmation=self._confirmation(resolved),
         )
         first_bytes = (self.workspace / "first.zip").read_bytes()
         second_bytes = (self.workspace / "second.zip").read_bytes()
@@ -261,8 +300,9 @@ class LightroomExportPackageTests(unittest.TestCase):
             self.assertTrue(all(info.date_time == (1980, 1, 1, 0, 0, 0) for info in archive.infolist()))
 
     def test_zip_slip_and_absolute_internal_names_are_rejected(self) -> None:
+        (self.export / "escape.jpg").write_bytes(b"synthetic malicious-name fixture")
         malicious = LightroomExportEntry(
-            "export-app/../escape.jpg", "../escape.jpg", ".jpg", ".jpg", 1,
+            "export-app/escape.jpg", "../escape.jpg", ".jpg", ".jpg", 1,
             "2026-01-01T00:00:00.000000000Z",
         )
         resolution = LightroomExportResolution(
@@ -274,6 +314,7 @@ class LightroomExportPackageTests(unittest.TestCase):
                 self.reader, self.writer,
                 export_relative_directory="export-app", resolutions=result,
                 destination_relative_path="review.zip", limits=self._limits(),
+                confirmation=self._confirmation(result),
             )
         self.assertEqual(list(self.workspace.iterdir()), [])
 
@@ -285,6 +326,7 @@ class LightroomExportPackageTests(unittest.TestCase):
                 export_relative_directory="export-app", resolutions=resolved,
                 destination_relative_path=os.fspath(self.workspace / "review.zip"),
                 limits=self._limits(),
+                confirmation=self._confirmation(resolved),
             )
         self.assertEqual(list(self.workspace.iterdir()), [])
 
@@ -297,6 +339,7 @@ class LightroomExportPackageTests(unittest.TestCase):
                 export_relative_directory="export-app", resolutions=resolved,
                 destination_relative_path="individual.zip",
                 limits=self._limits(jpg=10, package=1000),
+                confirmation=self._confirmation(resolved),
             )
         with self.assertRaisesRegex(ReviewPackageLimitError, "package size"):
             generate_review_package(
@@ -304,6 +347,7 @@ class LightroomExportPackageTests(unittest.TestCase):
                 export_relative_directory="export-app", resolutions=resolved,
                 destination_relative_path="total.zip",
                 limits=self._limits(jpg=100, package=100),
+                confirmation=self._confirmation(resolved),
             )
         self.assertEqual(list(self.workspace.iterdir()), [])
 
@@ -316,6 +360,7 @@ class LightroomExportPackageTests(unittest.TestCase):
                 self.reader, self.writer,
                 export_relative_directory="export-app", resolutions=resolved,
                 destination_relative_path="review.zip", limits=self._limits(),
+                confirmation=self._confirmation(resolved),
             )
         self.assertEqual(previous.read_bytes(), b"previous")
 
@@ -330,6 +375,7 @@ class LightroomExportPackageTests(unittest.TestCase):
                     self.reader, self.writer,
                     export_relative_directory="export-app", resolutions=resolved,
                     destination_relative_path="review.zip", limits=self._limits(),
+                    confirmation=self._confirmation(resolved),
                 )
         self.assertEqual(list(self.workspace.iterdir()), [])
 
@@ -344,6 +390,7 @@ class LightroomExportPackageTests(unittest.TestCase):
                     self.reader, self.writer,
                     export_relative_directory="export-app", resolutions=resolved,
                     destination_relative_path="review.zip", limits=self._limits(),
+                    confirmation=self._confirmation(resolved),
                 )
         self.assertEqual(list(self.workspace.iterdir()), [])
 
@@ -357,6 +404,7 @@ class LightroomExportPackageTests(unittest.TestCase):
             self.reader, self.writer,
             export_relative_directory="export-app", resolutions=resolved,
             destination_relative_path="review.zip", limits=self._limits(),
+            confirmation=self._confirmation(resolved),
         )
         after = {
             path.relative_to(self.session).as_posix(): hashlib.sha256(path.read_bytes()).digest()

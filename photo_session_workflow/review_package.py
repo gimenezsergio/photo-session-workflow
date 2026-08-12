@@ -15,6 +15,11 @@ from .lightroom_exports import (
     LightroomExportResolutionResult,
 )
 from .paths import SessionReader, WorkspaceWriter
+from .selection_confirmation import (
+    ConfirmedSelection,
+    SelectionConfirmationError,
+    validate_confirmed_selection,
+)
 
 
 class ReviewPackageError(ValueError):
@@ -31,6 +36,10 @@ class ReviewPackageIncompleteError(ReviewPackageError):
 
 class ReviewPackageLimitError(ReviewPackageError):
     """Raised when an individual image or the complete package exceeds its limit."""
+
+
+class ReviewPackageConfirmationError(ReviewPackageError):
+    """Raised before reading exports when explicit confirmation is absent or stale."""
 
 
 @dataclass(frozen=True, slots=True)
@@ -150,23 +159,30 @@ def generate_review_package(
     resolutions: LightroomExportResolutionResult,
     destination_relative_path: str,
     limits: ReviewPackageLimits,
+    confirmation: ConfirmedSelection | None = None,
 ) -> ReviewPackageResult:
     """Build completely in memory, then exclusively publish one atomic ZIP."""
 
     safe_destination = _relative_result(destination_relative_path)
-    manifest = build_review_manifest(resolutions)
+    confirmed_resolutions, validated_confirmation = _confirmed_resolutions(
+        resolutions, confirmation
+    )
+    manifest = build_review_manifest(confirmed_resolutions)
     manifest_bytes = manifest.to_json().encode("utf-8")
     if len(manifest_bytes) > limits.max_package_bytes:
         raise ReviewPackageLimitError("manifest exceeds package size limit")
 
     resolved = sorted(
-        resolutions.resolutions,
+        confirmed_resolutions.resolutions,
         key=lambda item: (item.asset_id.casefold(), item.asset_id),
     )
     member_names = [_safe_image_member(item) for item in resolved]
     if len({name.casefold() for name in member_names}) != len(member_names):
         raise ReviewPackageError("ZIP image names are not unique")
 
+    confirmed_candidates = {
+        item.asset_id: item for item in validated_confirmation.selected
+    }
     images: list[tuple[str, bytes]] = []
     projected_size = len(manifest_bytes)
     for item, member_name in zip(resolved, member_names):
@@ -185,6 +201,11 @@ def generate_review_package(
                     f"JPG exceeds individual limit: {item.identifier_name}"
                 )
             raise ReviewPackageLimitError("selected images exceed package size limit")
+        candidate = confirmed_candidates[item.asset_id]
+        if hashlib.sha256(payload).hexdigest() != candidate.source_sha256:
+            raise ReviewPackageConfirmationError(
+                "confirmed Lightroom export changed after proxy generation"
+            )
         projected_size += len(payload)
         images.append((member_name, payload))
 
@@ -205,6 +226,46 @@ def generate_review_package(
         manifest,
         ("manifest.json", *member_names),
     )
+
+
+def _confirmed_resolutions(
+    resolutions: LightroomExportResolutionResult,
+    confirmation: ConfirmedSelection | None,
+) -> tuple[LightroomExportResolutionResult, ConfirmedSelection]:
+    try:
+        validated = validate_confirmed_selection(confirmation)
+    except SelectionConfirmationError as exc:
+        raise ReviewPackageConfirmationError(str(exc)) from exc
+    by_id: dict[str, LightroomExportResolution] = {}
+    for item in resolutions.resolutions:
+        if item.asset_id in by_id:
+            raise ReviewPackageConfirmationError(
+                "export resolutions contain duplicate asset ids"
+            )
+        by_id[item.asset_id] = item
+
+    selected: list[LightroomExportResolution] = []
+    for candidate in validated.selected:
+        resolution = by_id.get(candidate.asset_id)
+        if resolution is None:
+            raise ReviewPackageConfirmationError(
+                "confirmed asset is absent from export resolutions"
+            )
+        if resolution.status != "resolved" or resolution.export is None:
+            raise ReviewPackageConfirmationError(
+                "confirmed asset no longer has a resolved export"
+            )
+        if (
+            resolution.identifier_name != candidate.identifier_name
+            or resolution.rating != candidate.rating
+            or resolution.export.relative_path != candidate.source_relative_path
+        ):
+            raise ReviewPackageConfirmationError(
+                "confirmed asset no longer matches its export resolution"
+            )
+        selected.append(resolution)
+    values = tuple(selected)
+    return LightroomExportResolutionResult(values, len(values), 0, 0, 0), validated
 
 
 def _relative_result(value: str | os.PathLike[str]) -> str:

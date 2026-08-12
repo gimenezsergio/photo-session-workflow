@@ -166,6 +166,7 @@ class ProxyAndContactSheetTests(unittest.TestCase):
         entry = result.entries[0]
         self.assertEqual((entry.width_px, entry.height_px), (80, 40))
         self.assertEqual(entry.preview_source, "lightroom_export")
+        self.assertEqual(entry.source_sha256, source_hash)
         self.assertIn("exif_orientation_applied", entry.warnings)
         self.assertIn("embedded_profile_converted_to_srgb", entry.warnings)
         payload = self.writer.read_bytes(entry.proxy_relative_path, max_bytes=500_000)  # type: ignore[arg-type]
