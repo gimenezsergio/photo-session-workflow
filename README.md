@@ -4,7 +4,7 @@ Proyecto local para diseñar y, más adelante, implementar un flujo de producci�
 
 ## Estado
 
-P0-01 a P0-15 están implementados, con recortes de P0-08 a P0-10 basados exclusivamente en exportaciones Lightroom declaradas: resolución exacta, proxies privados sRGB, hoja de contacto, confirmación, paquete local 0.3, entrega manual, registro SQLite privado y verificación de integridad. Todavía no hay aplicación Flask, aproximaciones desde NEF ni integración automática con Lightroom o ChatGPT.
+P0-01 a P0-16 están implementados, con recortes de P0-08 a P0-10 basados exclusivamente en exportaciones Lightroom declaradas. El recorrido completo tiene verificación sintética para 200 fotografías, selección reducida, paquete 0.3, registro manual e integridad. Todavía no hay aplicación Flask, aproximaciones desde NEF ni integración automática con Lightroom o ChatGPT; la medición representativa con material real requiere autorización separada.
 
 ## Objetivo
 
@@ -76,7 +76,7 @@ Instalar el proyecto en un entorno virtual antes de ejecutar este bloque:
 py -3 -m pip install -e .
 ```
 
-## Pruebas de P0-01 a P0-15
+## Pruebas de P0-01 a P0-16
 
 Además de Pillow, declarada en `pyproject.toml`, la suite no requiere ejecutables ni servicios externos. En Windows, con Python 3.11 o posterior:
 
@@ -112,6 +112,7 @@ photo-session-workflow/
 │   ├── review_handoff.py # Revisión sanitizada y descarga explícita en memoria
 │   ├── manual_recommendations.py # Registro SQLite manual sin aplicación
 │   ├── integrity.py     # Snapshots y controles de límites de seguridad
+│   ├── volume_verification.py # Recorrido completo y métricas P0-16
 │   └── relations.py     # Relaciones lógicas entre entradas admitidas
 ├── templates/           # Reservado para plantillas HTML futuras
 ├── tests/               # unittest y generador de fixtures temporales
@@ -123,4 +124,4 @@ photo-session-workflow/
 
 ## Próxima revisión
 
-La implementación debe detenerse al completar P0-15. La prueba de volumen P0-16, una interfaz Flask y las aproximaciones desde NEF requieren el siguiente recorte. Las preguntas restantes están documentadas como decisiones futuras y no bloquean estas bases.
+La implementación de dominio de la Fase 0 llega hasta P0-16 y debe detenerse aquí. Quedan para revisión la medición autorizada con una sesión real representativa, la interfaz Flask y cualquier mejora visual o aproximación desde NEF. Las preguntas restantes están documentadas como decisiones futuras.
