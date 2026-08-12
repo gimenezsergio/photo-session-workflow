@@ -386,6 +386,14 @@ Ofrecer al usuario control explícito sobre el handoff manual.
 - La descarga requiere una acción explícita y no inicia una carga externa.
 - La aplicación no controla ChatGPT, no usa su API y no almacena credenciales.
 
+**Implementación inicial sin interfaz web**
+
+- `inspect_review_package()` acepta exclusivamente el resultado canónico P0-12 y vuelve a leer el ZIP desde el workspace con un límite explícito. Comprueba tamaño, SHA-256, esquema 0.3, campos exactos del manifiesto, miembros, orden, unicidad y rutas internas seguras sin extraer archivos.
+- El resumen inmutable y serializable muestra nombre relativo del paquete, tamaño, hash, conteo, hoja de contacto, miembros, identificadores, ratings, procedencia, dimensiones y advertencias. No contiene bytes de imágenes, rutas absolutas, XML, EXIF completo, GPS ni credenciales.
+- El resumen advierte expresamente que el paquete contiene imágenes identificables, que compartir requiere una acción del usuario y que no existe transmisión automática.
+- `prepare_manual_download()` exige exactamente `explicit_download=True` antes de leer el paquete. Revalida tamaño y SHA-256 y devuelve el ZIP en memoria con nombre, tipo de medio e integridad para que una interfaz futura pueda iniciar la descarga.
+- Este recorte no copia el ZIP fuera del workspace, no abre un navegador, no contacta ChatGPT, no usa red ni registra si el usuario lo compartió. La respuesta HTTP y la interfaz visual quedan para una fase posterior a Flask.
+
 ### P0-14. Registrar manualmente recomendaciones y estado
 
 Permitir registrar resultados obtenidos durante la revisión asistida sin importación automática ni aplicación.
