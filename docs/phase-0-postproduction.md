@@ -298,6 +298,17 @@ Crear derivados privados para revisión eficiente.
 - El archivo se escribe sólo en el workspace privado.
 - Repetir la operación con la misma entrada y configuración no duplica proxies.
 
+**Recorte implementado desde exportaciones Lightroom declaradas**
+
+- La fuente se limita al único JPG/JPEG `resolved` para cada activo seleccionado dentro de `lightroom_export_relative_directory`; no se abren NEF, JPG de cámara, XMP, ACR ni catálogos.
+- Pillow aplica la orientación EXIF antes de retirar metadatos, convierte un perfil ICC válido a sRGB y re-encodifica JPEG con lado largo 2048 y calidad 85 por defecto.
+- Cuando falta ICC, sólo RGB y escala de grises pueden asumirse sRGB y el resultado conserva `source_profile_missing_assumed_srgb`. Un perfil inválido o un origen no RGB sin perfil se rechaza.
+- La salida incorpora únicamente un perfil ICC sRGB estándar; no copia EXIF, GPS, XMP, comentarios ni otros metadatos fuente.
+- Bytes y píxeles de entrada tienen límites configurables antes de completar la decodificación. Los errores se informan por activo con códigos sanitizados y no detienen el registro de los demás resultados.
+- Cada proxy tiene un nombre relativo seguro derivado del identificador lógico y de sus bytes renderizados. Se publica exclusivamente en el workspace mediante la capacidad protegida de escritura.
+- Una repetición reutiliza el proxy sólo si sus bytes coinciden exactamente. Nunca sobrescribe ni elimina derivados; si la entrada o configuración cambia, puede conservarse una versión adicional para limpieza manual futura.
+- Este recorte no genera `nef_approximation` y todavía no integra los proxies en el ZIP 0.2 existente.
+
 ### P0-10. Generar la hoja de contacto
 
 Crear una vista general a partir de proxies.
@@ -307,6 +318,15 @@ Crear una vista general a partir de proxies.
 - Cada celda permite identificar el activo lógico, rating XMP y fuente de preview.
 - La hoja usa proxies y no vuelve a revelar individualmente todos los NEF.
 - La salida queda dentro del workspace y no expone rutas absolutas ni GPS.
+
+**Implementación inicial**
+
+- La hoja se construye exclusivamente desde una tanda completa de proxies privados `generated` o `reused`; no vuelve a leer la sesión ni las exportaciones Lightroom.
+- Antes de decodificar cada proxy, comprueba su ruta relativa, límite de bytes y SHA-256 contra el resultado inmutable de P0-09. Una tanda incompleta, alterada o ilegible bloquea la hoja.
+- Cada celda presenta el nombre identificador, rating XMP y procedencia `lightroom_export`; el orden conserva el orden determinista de la selección.
+- Columnas, geometría, calidad y límites de bytes/píxeles son configurables. La salida es JPEG sRGB re-encodificada sin copiar metadatos de los proxies.
+- El nombre de salida deriva del SHA-256 del JPEG completo. Repetir la misma operación reutiliza bytes idénticos y no duplica, sobrescribe ni elimina hojas.
+- Este recorte no confirma todavía la selección P0-11 ni modifica el paquete de revisión P0-12.
 
 ### P0-11. Confirmar la selección reducida
 

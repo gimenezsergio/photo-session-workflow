@@ -6,7 +6,7 @@ Estas instrucciones aplican a todo el proyecto.
 
 ## Estado actual
 
-La implementación está autorizada exclusivamente para P0-01 a P0-07, un recorte de P0-08 y un paquete local limitado con exportaciones Lightroom declaradas:
+La implementación está autorizada exclusivamente para P0-01 a P0-10, con recortes explícitos de P0-08 a P0-10 basados en exportaciones Lightroom declaradas:
 
 - contrato de sesión, configuración y fronteras de rutas;
 - fixtures sintéticos generados durante las pruebas.
@@ -15,15 +15,17 @@ La implementación está autorizada exclusivamente para P0-01 a P0-07, un recort
 - lectura EXIF filtrada mediante un ejecutable ExifTool local configurado por el usuario.
 - lectura acotada de `xmp:Rating`, filtrado puro por estrellas y manifiesto preliminar en memoria con candidato JPG exacto.
 - inventario separado de una subcarpeta de exportación declarada, resolución exacta de JPG para activos seleccionados, manifiesto 0.2 y ZIP local sin hoja de contacto.
+- proxies privados re-encodificados desde exportaciones Lightroom resueltas y una hoja de contacto construida exclusivamente desde esos proxies.
 
 Hasta una nueva autorización:
 
-- no generar aproximaciones desde NEF, proxies ni hoja de contacto, ni ampliar la resolución exacta autorizada;
-- no interpretar del XMP nada distinto de `xmp:Rating`, ni interpretar ACR o decodificar NEF/JPG;
+- no generar aproximaciones desde NEF ni ampliar la resolución exacta autorizada;
+- no interpretar del XMP nada distinto de `xmp:Rating`, ni interpretar ACR, decodificar NEF o decodificar JPG fuera de las exportaciones Lightroom resueltas para P0-09;
 - no inicializar Flask ni SQLite;
 - no instalar dependencias sin justificación previa;
 - no procesar fotografías reales;
 - no abrir, copiar ni modificar catálogos Lightroom.
+- no implementar confirmación de selección, ampliación del paquete, descarga o registro de recomendaciones de P0-11 a P0-14.
 
 ## Alcance activo de la Fase 0
 
@@ -75,7 +77,12 @@ Quedan fuera de la Fase 0 la preproducción, las propuestas creativas, las prese
 - La resolución usa exclusivamente el nombre base exacto comparado con `casefold()`; faltantes, duplicados, entradas inválidas y sufijos no inferidos bloquean un paquete incompleto.
 - El ZIP autorizado contiene sólo `manifest.json` 0.2 e imágenes JPG/JPEG resueltas bajo `images/`, se publica exclusivamente en el workspace y nunca se transmite.
 - No afirmar que el empaquetado elimina EXIF incrustado: la política de metadatos depende de la configuración de exportación utilizada en Lightroom.
-- No generar proxies, aproximaciones NEF, hojas de contacto, Flask, SQLite ni persistencia adicional hasta nueva autorización.
+- P0-09 sólo puede decodificar los JPG/JPEG `resolved` dentro de la carpeta Lightroom declarada. Los NEF, JPG de cámara, XMP, ACR y catálogos quedan fuera de esa ruta de lectura.
+- Los proxies deben aplicar orientación EXIF, convertir perfiles ICC válidos a sRGB, limitar bytes y píxeles, y re-encodificar sin copiar EXIF, XMP, comentarios ni otros metadatos fuente. Ante ausencia de perfil sólo se admite asumir sRGB para imágenes RGB o escala de grises y debe advertirse.
+- Proxies y hojas de contacto usan nombres relativos derivados del contenido, publicación exclusiva y verificación byte por byte antes de reutilizar un resultado existente. No sobrescribir ni eliminar derivados automáticamente.
+- P0-10 debe leer exclusivamente proxies privados verificados por hash. Una tanda incompleta o alterada bloquea la hoja de contacto.
+- Pillow es la única dependencia de ejecución incorporada para este recorte; no utilizar ejecutables de imagen, red ni servicios externos.
+- No generar aproximaciones NEF, Flask, SQLite ni persistencia adicional hasta nueva autorización.
 
 ## Criterios para cambios futuros
 
