@@ -8,7 +8,9 @@ from dataclasses import dataclass
 from pathlib import Path
 
 from .exif import ExifConfigurationError, ExifToolSettings
+from .contact_sheet import ContactSheetError, ContactSheetSettings
 from .paths import PathBoundaryError, RootBoundaries, SessionReader
+from .proxies import ProxyConfigurationError, ProxySettings
 from .review_package import ReviewPackageLimits
 
 
@@ -27,6 +29,8 @@ class Phase0Config:
     review_package_limits: ReviewPackageLimits = ReviewPackageLimits(
         25_000_000, 250_000_000
     )
+    proxy_settings: ProxySettings = ProxySettings()
+    contact_sheet_settings: ContactSheetSettings = ContactSheetSettings()
 
     @property
     def session_root(self) -> Path:
@@ -134,10 +138,50 @@ def load_config(config_path: str | os.PathLike[str]) -> Phase0Config:
         )
     except (TypeError, ValueError) as exc:
         raise ConfigurationError(str(exc)) from exc
+
+    proxy_payload = payload.get("proxy", {})
+    if not isinstance(proxy_payload, dict):
+        raise ConfigurationError("proxy configuration must be an object")
+    proxy_allowed = {
+        "long_edge_px",
+        "jpeg_quality",
+        "max_source_bytes",
+        "max_source_pixels",
+    }
+    if set(proxy_payload) - proxy_allowed:
+        raise ConfigurationError("proxy configuration contains unsupported keys")
+    try:
+        proxy_settings = ProxySettings.create(**proxy_payload)
+    except (ProxyConfigurationError, TypeError) as exc:
+        raise ConfigurationError(str(exc)) from exc
+
+    contact_payload = payload.get("contact_sheet", {})
+    if not isinstance(contact_payload, dict):
+        raise ConfigurationError("contact_sheet configuration must be an object")
+    contact_allowed = {
+        "columns",
+        "cell_width_px",
+        "thumbnail_height_px",
+        "label_height_px",
+        "padding_px",
+        "jpeg_quality",
+        "max_output_pixels",
+        "max_proxy_bytes",
+    }
+    if set(contact_payload) - contact_allowed:
+        raise ConfigurationError(
+            "contact_sheet configuration contains unsupported keys"
+        )
+    try:
+        contact_settings = ContactSheetSettings.create(**contact_payload)
+    except (ContactSheetError, TypeError) as exc:
+        raise ConfigurationError(str(exc)) from exc
     return Phase0Config(
-        boundaries,
-        exiftool,
-        xmp_max_bytes,
-        export_relative_directory,
-        package_limits,
+        boundaries=boundaries,
+        exiftool=exiftool,
+        xmp_max_bytes=xmp_max_bytes,
+        lightroom_export_relative_directory=export_relative_directory,
+        review_package_limits=package_limits,
+        proxy_settings=proxy_settings,
+        contact_sheet_settings=contact_settings,
     )

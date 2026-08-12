@@ -185,6 +185,62 @@ class ConfigTests(unittest.TestCase):
             with self.assertRaisesRegex(ConfigurationError, "must not be smaller"):
                 load_config(config_path)
 
+    def test_proxy_and_contact_sheet_settings_are_loaded(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            parent = Path(temporary)
+            session, workspace, repository = self._roots(parent)
+            config_path = self._write_config(parent, session, workspace, repository)
+            payload = json.loads(config_path.read_text(encoding="utf-8"))
+            payload["proxy"] = {
+                "long_edge_px": 1024,
+                "jpeg_quality": 82,
+                "max_source_bytes": 123456,
+                "max_source_pixels": 654321,
+            }
+            payload["contact_sheet"] = {
+                "columns": 3,
+                "cell_width_px": 400,
+                "thumbnail_height_px": 280,
+                "label_height_px": 50,
+                "padding_px": 10,
+                "jpeg_quality": 84,
+                "max_output_pixels": 5000000,
+                "max_proxy_bytes": 2000000,
+            }
+            config_path.write_text(json.dumps(payload), encoding="utf-8")
+            config = load_config(config_path)
+            self.assertEqual(config.proxy_settings.long_edge_px, 1024)
+            self.assertEqual(config.proxy_settings.jpeg_quality, 82)
+            self.assertEqual(config.contact_sheet_settings.columns, 3)
+            self.assertEqual(config.contact_sheet_settings.jpeg_quality, 84)
+
+    def test_invalid_proxy_and_contact_sheet_settings_are_rejected(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            parent = Path(temporary)
+            session, workspace, repository = self._roots(parent)
+            config_path = self._write_config(parent, session, workspace, repository)
+            payload = json.loads(config_path.read_text(encoding="utf-8"))
+            payload["proxy"] = {"long_edge_px": 1}
+            config_path.write_text(json.dumps(payload), encoding="utf-8")
+            with self.assertRaisesRegex(ConfigurationError, "long_edge_px"):
+                load_config(config_path)
+            payload["proxy"] = {}
+            payload["contact_sheet"] = {"columns": 0}
+            config_path.write_text(json.dumps(payload), encoding="utf-8")
+            with self.assertRaisesRegex(ConfigurationError, "columns"):
+                load_config(config_path)
+
+    def test_unknown_proxy_configuration_key_is_rejected(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            parent = Path(temporary)
+            session, workspace, repository = self._roots(parent)
+            config_path = self._write_config(parent, session, workspace, repository)
+            payload = json.loads(config_path.read_text(encoding="utf-8"))
+            payload["proxy"] = {"write_exif": True}
+            config_path.write_text(json.dumps(payload), encoding="utf-8")
+            with self.assertRaisesRegex(ConfigurationError, "unsupported keys"):
+                load_config(config_path)
+
     @unittest.skipUnless(os.name == "nt", "Windows-specific path behavior")
     def test_windows_backslash_paths_are_accepted(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:

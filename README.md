@@ -4,7 +4,7 @@ Proyecto local para diseñar y, más adelante, implementar un flujo de producci�
 
 ## Estado
 
-P0-01 a P0-05 de la Fase 0 están implementados: fronteras de rutas, fixtures sintéticos, inventario, relaciones lógicas y lectura EXIF controlada. Todavía no hay aplicación Flask, SQLite, lectura de estrellas XMP, generación de proxies ni procesamiento de material real.
+P0-01 a P0-07 están implementados, junto con recortes de P0-08 a P0-10 basados exclusivamente en exportaciones Lightroom declaradas: resolución exacta, paquete local, proxies privados sRGB y hoja de contacto. Todavía no hay aplicación Flask, SQLite, aproximaciones desde NEF ni integración automática con Lightroom o ChatGPT.
 
 ## Objetivo
 
@@ -49,6 +49,8 @@ Copiar `config.example.json` como `config.local.json` y reemplazar los valores p
 - `exiftool.executable`: ruta absoluta a una instalación local de `exiftool.exe`, fuera de sesión, workspace y repositorio;
 - `exiftool.timeout_seconds`: timeout conservador por proceso;
 - `exiftool.max_output_bytes`: límite de captura por stream.
+- `proxy`: lado largo, calidad JPEG y límites de bytes y píxeles de la exportación fuente;
+- `contact_sheet`: grilla, dimensiones, calidad y límites de la hoja de contacto.
 
 `config.local.json` está ignorado por Git. Las tres raíces deben ser disjuntas: la validación rechaza igualdad, anidamiento en cualquier dirección y symlinks, junctions o reparse points detectables.
 
@@ -62,9 +64,19 @@ ExifTool es una dependencia externa futura que debe instalar y administrar expl�
 
 La aplicación sólo ejecuta comandos de lectura con tags fijos, JSON y valores numéricos. No acepta flags configurables. Las pruebas normales usan runners falsos y no requieren ExifTool; la prueba real de versión permanece omitida salvo que se definan `PHOTO_SESSION_EXIFTOOL_INTEGRATION=1` y `PHOTO_SESSION_EXIFTOOL_PATH`.
 
-## Pruebas de P0-01 a P0-05
+## Dependencia de imágenes para P0-09 y P0-10
 
-No se requieren dependencias externas. En Windows, con Python 3.11 o posterior:
+Pillow 12.3 es la única dependencia Python de ejecución. Se utiliza para aplicar orientación EXIF, convertir color a sRGB, re-encodificar proxies sin metadatos fuente y componer la hoja de contacto. No descarga recursos ni ejecuta herramientas externas.
+
+Instalar el proyecto en un entorno virtual antes de ejecutar este bloque:
+
+```powershell
+py -3 -m pip install -e .
+```
+
+## Pruebas de P0-01 a P0-10
+
+Además de Pillow, declarada en `pyproject.toml`, la suite no requiere ejecutables ni servicios externos. En Windows, con Python 3.11 o posterior:
 
 ```powershell
 py -3 -m unittest discover -s tests -v
@@ -76,7 +88,7 @@ Si `python` ya está disponible en `PATH`:
 python -m unittest discover -s tests -v
 ```
 
-Los tests generan en directorios temporales archivos de texto con extensiones `.NEF`, `.jpg`, `.xmp` y `.acr`. No son fotografías ni validan decodificación RAW/JPEG; sólo representan nombres, casos sintéticos y metadatos del filesystem.
+Los tests generan en directorios temporales marcadores de texto para NEF/XMP/ACR y pequeños JPEG sintéticos creados por Pillow para P0-09/P0-10. No contienen fotografías reales, datos personales ni GPS, y no validan decodificación RAW.
 
 Las pruebas de P0-03 verifican recorrido recursivo y no recursivo, extensiones sin distinción de mayúsculas, orden estable, rutas relativas, aislamiento de errores, rechazo de datos Lightroom y enlaces detectables, volumen superior a 200 fotografías simuladas y ausencia de lecturas de contenido o escrituras. Las pruebas de symlinks se omiten cuando Windows no concede el privilegio necesario; la detección de reparse points también tiene cobertura determinista independiente.
 
@@ -88,9 +100,11 @@ photo-session-workflow/
 ├── docs/
 ├── photo_session_workflow/
 │   ├── config.py        # Carga y validación de configuración local
+│   ├── contact_sheet.py # Hoja de contacto desde proxies privados
 │   ├── exif.py          # Selección y lectura EXIF filtrada mediante ExifTool
 │   ├── inventory.py     # Inventario inmutable de metadatos del filesystem
 │   ├── paths.py         # Fronteras y capacidades de filesystem
+│   ├── proxies.py       # Proxies sRGB desde exportaciones Lightroom declaradas
 │   └── relations.py     # Relaciones lógicas entre entradas admitidas
 ├── templates/           # Reservado para plantillas HTML futuras
 ├── tests/               # unittest y generador de fixtures temporales
@@ -102,4 +116,4 @@ photo-session-workflow/
 
 ## Próxima revisión
 
-La implementación debe detenerse al completar P0-05. P0-06 y las tareas posteriores requieren una autorización nueva. Las preguntas restantes están documentadas como decisiones futuras y no bloquean estas bases.
+La implementación debe detenerse al completar este recorte de P0-09/P0-10. Las aproximaciones desde NEF y P0-11 o tareas posteriores requieren una autorización nueva. Las preguntas restantes están documentadas como decisiones futuras y no bloquean estas bases.

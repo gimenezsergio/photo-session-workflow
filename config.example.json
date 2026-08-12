@@ -16,5 +16,21 @@
   "review_package": {
     "max_jpg_bytes": 25000000,
     "max_package_bytes": 250000000
+  },
+  "proxy": {
+    "long_edge_px": 2048,
+    "jpeg_quality": 85,
+    "max_source_bytes": 25000000,
+    "max_source_pixels": 100000000
+  },
+  "contact_sheet": {
+    "columns": 4,
+    "cell_width_px": 520,
+    "thumbnail_height_px": 360,
+    "label_height_px": 58,
+    "padding_px": 12,
+    "jpeg_quality": 85,
+    "max_output_pixels": 100000000,
+    "max_proxy_bytes": 10000000
   }
 }
