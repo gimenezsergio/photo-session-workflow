@@ -447,6 +447,15 @@ Probar el recorrido completo con una sesión representativa de hasta 200 fotogra
 - El paquete de revisión se limita a la selección confirmada.
 - Se registran tiempos y uso de almacenamiento para decidir objetivos de rendimiento posteriores.
 
+**Implementación inicial y prueba sintética**
+
+- `run_volume_verification()` orquesta sin atajos las capacidades P0-03 a P0-15: inventario no recursivo, relaciones, ratings, filtro, exportaciones declaradas, snapshot previo, proxies, hoja general, confirmación explícita, paquete 0.3, snapshot posterior y medición del workspace.
+- El runner exige una tupla no vacía de activos elegidos por el usuario y `explicit_confirmation=True`; nunca infiere el consentimiento. Falla si las exportaciones o proxies están incompletos, si cambia una fuente, si el paquete no coincide con la confirmación o si se preparan individualmente todas las fotografías inventariadas.
+- El reporte inmutable registra fotografías, sidecars, auxiliares, activos, selección por rating, proxies, hojas, confirmados, fuentes/bytes, artefactos y bytes del workspace antes/después, tamaño/hash del paquete, comparación de integridad y tiempo de cada etapa.
+- La prueba representativa genera temporalmente 200 marcadores NEF no decodificables y 200 XMP sintéticos. Veinte activos reciben rating 5 y un JPG Lightroom sintético; se crean 20 proxies y una hoja general, el usuario simulado confirma 12 y el ZIP contiene sólo esos 12 proxies, su hoja y el manifiesto.
+- La prueba no incorpora archivos al repositorio, no usa ExifTool, no decodifica NEF, no abre catálogos y no accede a fotografías reales. Sus tiempos sirven para detectar regresiones estructurales, no para estimar el rendimiento de una Nikon D7000 o de un disco/CPU reales.
+- Para cerrar la aceptación operativa completa continúa pendiente ejecutar el mismo reporte con una sesión real representativa y autorización específica, registrando hardware y condiciones sin incorporar el material ni sus rutas a Git.
+
 ## Definición de terminado de la Fase 0
 
 La Fase 0 estará terminada cuando todas las tareas P0-01 a P0-16 cumplan sus criterios, el flujo opere con fixtures y una copia de prueba representativa de Nikon D7000, y se demuestre mediante checksums y auditoría de escrituras que ninguna fuente fue modificada o eliminada.
